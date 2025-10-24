@@ -1,0 +1,58 @@
+version: "3.9"
+
+services:
+  server:
+    build: ./server
+    container_name: moviebooking-server
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./server/.env
+    volumes:
+      - ./server:/app
+      - ./server/logs:/app/logs  # Mount logs directory
+    environment:
+      - PYTHONPATH=/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - moviebooking-network
+
+  # Optional: Add PostgreSQL for production
+  # postgres:
+  #   image: postgres:15-alpine
+  #   container_name: moviebooking-postgres
+  #   environment:
+  #     POSTGRES_DB: moviebooking
+  #     POSTGRES_USER: movieuser
+  #     POSTGRES_PASSWORD: moviepass
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+  #   restart: unless-stopped
+  #   networks:
+  #     - moviebooking-network
+
+  # Optional: Add Redis for caching
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: moviebooking-redis
+  #   ports:
+  #     - "6379:6379"
+  #   restart: unless-stopped
+  #   networks:
+  #     - moviebooking-network
+
+networks:
+  moviebooking-network:
+    driver: bridge
+
+# volumes:
+#   postgres_data:
