@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 from typing import Any, List, Optional, Dict
+import os
 
 class JWSData:
     token: str
@@ -17,13 +18,13 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "Movie Booking"
     DATABASE_URL: str = "sqlite:///./movie_booking.db"
 
-    # Security Settings
-    SECRET_KEY: str = "your-secret-key-change-in-production"
+    # Security Settings - MUST be overridden in .env for production
+    SECRET_KEY: str = "CHANGE_THIS_IN_PRODUCTION"
     DEBUG: bool = True
     ENVIRONMENT: str = "development"
     
-    # JWT Settings
-    JWT_SECRET_KEY: str = "your-jwt-secret-key-change-in-production"
+    # JWT Settings - MUST be overridden in .env for production
+    JWT_SECRET_KEY: str = "CHANGE_THIS_IN_PRODUCTION"
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
@@ -82,5 +83,20 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Security check for production
+        if self.ENVIRONMENT == "production":
+            self._validate_production_secrets()
+    
+    def _validate_production_secrets(self):
+        """Validate that production secrets are properly set"""
+        if self.SECRET_KEY in ["CHANGE_THIS_IN_PRODUCTION", "your-secret-key-change-in-production"]:
+            raise ValueError("SECRET_KEY must be changed for production!")
+        if self.JWT_SECRET_KEY in ["CHANGE_THIS_IN_PRODUCTION", "your-jwt-secret-key-change-in-production"]:
+            raise ValueError("JWT_SECRET_KEY must be changed for production!")
+        if self.DEBUG:
+            raise ValueError("DEBUG must be False for production!")
 
 settings = Settings()
