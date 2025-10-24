@@ -1,0 +1,10 @@
+fastapi[standard]
+uvicorn 
+SQLAlchemy==2.0.43
+pydantic
+alembic
+pydantic_settings
+requests 
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart

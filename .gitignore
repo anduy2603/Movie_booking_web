@@ -1,0 +1,46 @@
+# ---- Python ----
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+*.log
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# ---- Node ----
+node_modules/
+npm-debug.log
+yarn-debug.log*
+yarn-error.log*
+
+# ---- Build ----
+dist/
+build/
+.cache/
+coverage/
+
+# ---- Environment files ----
+.env
+.env.*
+
+# ---- Alembic ----
+alembic/__pycache__/
+
+# ---- VSCode / IDE ----
+.vscode/
+.idea/
+
+# ---- Docker ----
+*.pid
+*.sock
+*.pid.lock
+__docker_build__/
+
+# ---- System ----
+.DS_Store
+Thumbs.db
