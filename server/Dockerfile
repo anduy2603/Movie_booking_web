@@ -15,8 +15,8 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# ---------- Copy toàn bộ source code ----------
-COPY . .
+# # ---------- Copy toàn bộ source code ----------
+# COPY . .
 
 # ---------- Tạo user non-root để bảo mật ----------
 RUN adduser --disabled-password --gecos '' appuser && \
