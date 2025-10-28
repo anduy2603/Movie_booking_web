@@ -64,19 +64,52 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (userData) => {
+    console.log('AuthContext register called with:', userData);
     try {
+      console.log('Calling authService.registerRequest...');
       const resp = await authService.registerRequest(userData);
+      console.log('Register response:', resp);
       const data = resp.data;
+      
+      // Set token and user data
       setToken(data.access_token);
       setAuthToken(data.access_token);
       setUser(data.user);
       localStorage.setItem('token', data.access_token);
+      
+      // Show success message
       toast.success('Đăng ký thành công!');
+      
       return { success: true };
     } catch (error) {
-      console.error('Register error:', error);
-      const message = error?.response?.data?.detail || 'Đăng ký thất bại';
-      toast.error(message);
+      console.error('Register error:', error?.response?.data || error);
+      
+      let message = 'Đăng ký thất bại';
+      
+      if (error?.response?.status === 422) {
+        // Handle validation errors from server
+        const errors = error.response.data?.detail;
+        if (Array.isArray(errors)) {
+          message = errors.map(err => err.msg || err.message || err).join(', ');
+        } else if (typeof errors === 'string') {
+          message = errors;
+        } else if (error.response.data?.message) {
+          message = error.response.data.message;
+        } else {
+          message = 'Dữ liệu không hợp lệ';
+        }
+      } else if (error?.response?.status === 400) {
+        // Handle bad request (e.g. email already exists)
+        message = error.response.data?.detail || 'Email đã được đăng ký';
+      } else {
+        message = error?.response?.data?.detail || error?.message || 'Đăng ký thất bại';
+      }
+      
+      // Only show toast if it's not a network error
+      if (error.code !== 'NETWORK_ERROR') {
+        toast.error(message);
+      }
+      
       return { success: false, error: message };
     }
   };

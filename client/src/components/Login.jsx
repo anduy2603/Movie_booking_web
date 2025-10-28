@@ -48,7 +48,13 @@ const Login = ({ onClose, onSwitchToRegister }) => {
       <div className="auth-modal-content" style={{
         position: 'relative',
         margin: '0 auto',
-        transform: 'none'
+        transform: 'none',
+        backgroundColor: 'white',
+        borderRadius: '20px',
+        padding: '40px',
+        width: '100%',
+        maxWidth: '420px',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
       }}>
         <button
           onClick={onClose}

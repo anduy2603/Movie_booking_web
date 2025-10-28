@@ -38,6 +38,18 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
+    // Log error payload for easier debugging
+    try {
+      console.error('API error:', {
+        url: error.config?.url,
+        method: error.config?.method,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+    } catch (e) {
+      console.error('Failed to log API error', e);
+    }
+
     // Handle common errors
     if (error.response) {
       const { status, data } = error.response;
@@ -62,19 +74,19 @@ api.interceptors.response.use(
           break;
         case 422:
           // Validation errors
-          if (data.detail && Array.isArray(data.detail)) {
+          if (data && data.detail && Array.isArray(data.detail)) {
             data.detail.forEach(err => {
-              toast.error(err.msg || 'Dữ liệu không hợp lệ.');
+              toast.error(err.msg || err.message || 'Dữ liệu không hợp lệ.');
             });
           } else {
-            toast.error(data.detail || 'Dữ liệu không hợp lệ.');
+            toast.error((data && data.detail) || 'Dữ liệu không hợp lệ.');
           }
           break;
         case 500:
           toast.error('Lỗi máy chủ. Vui lòng thử lại sau.');
           break;
         default:
-          toast.error(data.detail || 'Đã xảy ra lỗi. Vui lòng thử lại.');
+          toast.error((data && data.detail) || 'Đã xảy ra lỗi. Vui lòng thử lại.');
       }
     } else if (error.request) {
       // Network error
@@ -83,7 +95,7 @@ api.interceptors.response.use(
       // Other errors
       toast.error('Đã xảy ra lỗi không xác định.');
     }
-    
+
     return Promise.reject(error);
   }
 );

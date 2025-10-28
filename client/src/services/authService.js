@@ -5,6 +5,7 @@ export const loginRequest = (email, password) => {
 };
 
 export const registerRequest = (userData) => {
+  console.log('authService.registerRequest called with:', userData);
   return api.post('/auth/register', userData);
 };
 

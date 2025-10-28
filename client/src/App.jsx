@@ -12,6 +12,7 @@ import Footer from "./components/Footer";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ApiTestPanel from "./components/ApiTestPanel";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 
 const App = () =>{
@@ -19,32 +20,34 @@ const App = () =>{
   const isAdminRoute = useLocation().pathname.startsWith('/admin')
 
   return(
-    <AuthProvider>
-      <Toaster/>
-      {!isAdminRoute && <Navbar/>}
-      <Routes>
-        <Route path="/" element={<Home/>} />
-        <Route path="/movies" element={<Movies/>} />
-        <Route path="/movies/:id" element={<MovieDetails/>} />
-        <Route path="/movies/:id/:date" element={
-          <ProtectedRoute>
-            <SeatLayout/>
-          </ProtectedRoute>
-        } />
-        <Route path="/my-bookings" element={
-          <ProtectedRoute>
-            <MyBookings/>
-          </ProtectedRoute>
-        } />
-        <Route path="/favorite" element={
-          <ProtectedRoute>
-            <Favorite/>
-          </ProtectedRoute>
-        } />
-      </Routes>
-      {!isAdminRoute && <Footer/>}
-      <ApiTestPanel />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <Toaster/>
+        {!isAdminRoute && <Navbar/>}
+        <Routes>
+          <Route path="/" element={<Home/>} />
+          <Route path="/movies" element={<Movies/>} />
+          <Route path="/movies/:id" element={<MovieDetails/>} />
+          <Route path="/movies/:id/:date" element={
+            <ProtectedRoute>
+              <SeatLayout/>
+            </ProtectedRoute>
+          } />
+          <Route path="/my-bookings" element={
+            <ProtectedRoute>
+              <MyBookings/>
+            </ProtectedRoute>
+          } />
+          <Route path="/favorite" element={
+            <ProtectedRoute>
+              <Favorite/>
+            </ProtectedRoute>
+          } />
+        </Routes>
+        {!isAdminRoute && <Footer/>}
+        <ApiTestPanel />
+      </AuthProvider>
+    </ErrorBoundary>
   )
 }
 

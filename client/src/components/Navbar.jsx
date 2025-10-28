@@ -5,7 +5,7 @@ import { assets } from '../assets/assets';
 import { useDropdown } from '../hooks/useDropdown';
 import { useUser } from '../hooks/useAuth';
 import Login from './Login';
-import Register from './Register';
+import SimpleRegister from './SimpleRegister';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -114,7 +114,7 @@ const Navbar = () => {
       )}
       
       {showRegister && (
-        <Register 
+        <SimpleRegister 
           onClose={() => setShowRegister(false)} 
           onSwitchToLogin={() => {
             setShowRegister(false);

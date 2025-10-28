@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { useAuth } from '../hooks/useAuth';
 import AuthModal from './AuthModal';
-import '../styles/auth.css';
+import { useAuth } from '../hooks/useAuth';
 
-const Register = ({ onClose, onSwitchToLogin }) => {
+const SimpleRegister = ({ onClose, onSwitchToLogin }) => {
+  const { register } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -13,12 +13,6 @@ const Register = ({ onClose, onSwitchToLogin }) => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
-  // Safe destructuring with fallback
-  const authContext = useAuth();
-  const register = authContext?.register || (() => Promise.resolve({ success: false, error: 'Auth context not available' }));
 
   const handleChange = (e) => {
     setFormData({
@@ -31,7 +25,7 @@ const Register = ({ onClose, onSwitchToLogin }) => {
     e.preventDefault();
     setError('');
     
-    console.log('Register form submitted:', formData);
+    console.log('SimpleRegister form submitted:', formData);
     
     // Validation
     if (!formData.email || !formData.password || !formData.full_name) {
@@ -67,7 +61,7 @@ const Register = ({ onClose, onSwitchToLogin }) => {
       console.log('Register result:', result);
       
       if (result.success) {
-        console.log('Registration successful, closing modal');
+        console.log('Registration successful');
         onClose();
       } else {
         console.log('Registration failed:', result.error);
@@ -84,7 +78,7 @@ const Register = ({ onClose, onSwitchToLogin }) => {
       }
     } catch (error) {
       console.error('Registration error:', error);
-      setError('Đã xảy ra lỗi không xác định');
+      setError(error?.response?.data?.detail || 'Đã xảy ra lỗi không xác định');
     }
     
     setLoading(false);
@@ -92,23 +86,18 @@ const Register = ({ onClose, onSwitchToLogin }) => {
 
   return (
     <AuthModal isOpen={true}>
-      <div className="auth-modal-content" style={{ 
-        maxHeight: '90vh', 
-        overflowY: 'auto',
-        position: 'relative',
-        margin: '0 auto',
-        transform: 'none',
+      <div style={{
         backgroundColor: 'white',
         borderRadius: '20px',
         padding: '40px',
         width: '100%',
         maxWidth: '420px',
         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-        color: 'black'
+        color: 'black',
+        position: 'relative'
       }}>
         <button
           onClick={onClose}
-          className="auth-close-button"
           style={{
             position: 'absolute',
             top: '20px',
@@ -126,26 +115,26 @@ const Register = ({ onClose, onSwitchToLogin }) => {
             justifyContent: 'center'
           }}
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          ✕
         </button>
         
-        <h2 className="auth-title" style={{
+        <h2 style={{
           fontSize: '32px',
           fontWeight: '800',
           color: '#1e293b',
           textAlign: 'center',
           marginBottom: '40px'
-        }}>Đăng ký</h2>
+        }}>
+          Đăng ký (Test)
+        </h2>
 
-        <form onSubmit={handleSubmit} className="auth-form" style={{
+        <form onSubmit={handleSubmit} style={{
           display: 'flex',
           flexDirection: 'column',
           gap: '24px'
         }}>
           {error && (
-            <div className="auth-error" style={{
+            <div style={{
               background: 'linear-gradient(135deg, #fef2f2, #fee2e2)',
               border: '1px solid #fecaca',
               color: '#dc2626',
@@ -160,7 +149,7 @@ const Register = ({ onClose, onSwitchToLogin }) => {
           )}
           
           <div>
-            <label htmlFor="full_name" className="auth-label" style={{
+            <label style={{
               display: 'block',
               fontWeight: '600',
               color: '#374151',
@@ -171,12 +160,10 @@ const Register = ({ onClose, onSwitchToLogin }) => {
             </label>
             <input
               type="text"
-              id="full_name"
               name="full_name"
               value={formData.full_name}
               onChange={handleChange}
               required
-              className="auth-input"
               style={{
                 width: '100%',
                 padding: '16px 20px',
@@ -185,14 +172,15 @@ const Register = ({ onClose, onSwitchToLogin }) => {
                 fontSize: '16px',
                 fontWeight: '500',
                 backgroundColor: 'white',
-                color: '#1e293b'
+                color: '#1e293b',
+                boxSizing: 'border-box'
               }}
               placeholder="Nhập họ và tên của bạn"
             />
           </div>
 
           <div>
-            <label htmlFor="email" className="auth-label" style={{
+            <label style={{
               display: 'block',
               fontWeight: '600',
               color: '#374151',
@@ -203,12 +191,10 @@ const Register = ({ onClose, onSwitchToLogin }) => {
             </label>
             <input
               type="email"
-              id="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
               required
-              className="auth-input"
               style={{
                 width: '100%',
                 padding: '16px 20px',
@@ -217,14 +203,15 @@ const Register = ({ onClose, onSwitchToLogin }) => {
                 fontSize: '16px',
                 fontWeight: '500',
                 backgroundColor: 'white',
-                color: '#1e293b'
+                color: '#1e293b',
+                boxSizing: 'border-box'
               }}
               placeholder="Nhập email của bạn"
             />
           </div>
 
           <div>
-            <label htmlFor="username" className="auth-label" style={{
+            <label style={{
               display: 'block',
               fontWeight: '600',
               color: '#374151',
@@ -235,11 +222,9 @@ const Register = ({ onClose, onSwitchToLogin }) => {
             </label>
             <input
               type="text"
-              id="username"
               name="username"
               value={formData.username}
               onChange={handleChange}
-              className="auth-input"
               style={{
                 width: '100%',
                 padding: '16px 20px',
@@ -248,14 +233,15 @@ const Register = ({ onClose, onSwitchToLogin }) => {
                 fontSize: '16px',
                 fontWeight: '500',
                 backgroundColor: 'white',
-                color: '#1e293b'
+                color: '#1e293b',
+                boxSizing: 'border-box'
               }}
               placeholder="Nhập tên người dùng"
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="auth-label" style={{
+            <label style={{
               display: 'block',
               fontWeight: '600',
               color: '#374151',
@@ -264,56 +250,29 @@ const Register = ({ onClose, onSwitchToLogin }) => {
             }}>
               Mật khẩu *
             </label>
-            <div className="auth-password-container" style={{ position: 'relative' }}>
-              <input
-                type={showPassword ? "text" : "password"}
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                required
-                className="auth-input"
-                style={{
-                  width: '100%',
-                  padding: '16px 60px 16px 20px',
-                  border: '2px solid #e2e8f0',
-                  borderRadius: '12px',
-                  fontSize: '16px',
-                  fontWeight: '500',
-                  backgroundColor: 'white',
-                  color: '#1e293b'
-                }}
-                placeholder="Nhập mật khẩu (ít nhất 8 ký tự)"
-              />
-              <button
-                type="button"
-                className="auth-password-toggle"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{
-                  position: 'absolute',
-                  right: '16px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'rgba(255, 255, 255, 0.8)',
-                  border: '1px solid rgba(0, 0, 0, 0.1)',
-                  color: '#64748b',
-                  cursor: 'pointer',
-                  padding: '8px',
-                  borderRadius: '8px',
-                  width: '36px',
-                  height: '36px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                {showPassword ? '👁️' : '👁️‍🗨️'}
-              </button>
-            </div>
+            <input
+              type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              required
+              style={{
+                width: '100%',
+                padding: '16px 20px',
+                border: '2px solid #e2e8f0',
+                borderRadius: '12px',
+                fontSize: '16px',
+                fontWeight: '500',
+                backgroundColor: 'white',
+                color: '#1e293b',
+                boxSizing: 'border-box'
+              }}
+              placeholder="Nhập mật khẩu (ít nhất 8 ký tự)"
+            />
           </div>
 
           <div>
-            <label htmlFor="confirmPassword" className="auth-label" style={{
+            <label style={{
               display: 'block',
               fontWeight: '600',
               color: '#374151',
@@ -322,58 +281,30 @@ const Register = ({ onClose, onSwitchToLogin }) => {
             }}>
               Xác nhận mật khẩu *
             </label>
-            <div className="auth-password-container" style={{ position: 'relative' }}>
-              <input
-                type={showConfirmPassword ? "text" : "password"}
-                id="confirmPassword"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                required
-                className="auth-input"
-                style={{
-                  width: '100%',
-                  padding: '16px 60px 16px 20px',
-                  border: '2px solid #e2e8f0',
-                  borderRadius: '12px',
-                  fontSize: '16px',
-                  fontWeight: '500',
-                  backgroundColor: 'white',
-                  color: '#1e293b'
-                }}
-                placeholder="Nhập lại mật khẩu"
-              />
-              <button
-                type="button"
-                className="auth-password-toggle"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                style={{
-                  position: 'absolute',
-                  right: '16px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'rgba(255, 255, 255, 0.8)',
-                  border: '1px solid rgba(0, 0, 0, 0.1)',
-                  color: '#64748b',
-                  cursor: 'pointer',
-                  padding: '8px',
-                  borderRadius: '8px',
-                  width: '36px',
-                  height: '36px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
-              </button>
-            </div>
+            <input
+              type="password"
+              name="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              required
+              style={{
+                width: '100%',
+                padding: '16px 20px',
+                border: '2px solid #e2e8f0',
+                borderRadius: '12px',
+                fontSize: '16px',
+                fontWeight: '500',
+                backgroundColor: 'white',
+                color: '#1e293b',
+                boxSizing: 'border-box'
+              }}
+              placeholder="Nhập lại mật khẩu"
+            />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="auth-button"
             style={{
               width: '100%',
               padding: '16px 24px',
@@ -391,7 +322,7 @@ const Register = ({ onClose, onSwitchToLogin }) => {
           </button>
         </form>
 
-        <div className="auth-switch" style={{
+        <div style={{
           textAlign: 'center',
           marginTop: '32px',
           fontSize: '14px',
@@ -416,4 +347,4 @@ const Register = ({ onClose, onSwitchToLogin }) => {
   );
 };
 
-export default Register;
+export default SimpleRegister;
