@@ -13,11 +13,21 @@ import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ApiTestPanel from "./components/ApiTestPanel";
 import ErrorBoundary from "./components/ErrorBoundary";
+import AdminMovieForm from "./components/AdminMovieForm";
+import AdminDashboard from "./components/AdminDashboard";
+import AdminMovieList from "./components/AdminMovieList";
+import AdminTheaterList from "./components/AdminTheaterList";
+import AdminRoomList from "./components/AdminRoomList";
+import UserProfile from "./components/UserProfile";
+import AdminSettings from "./components/AdminSettings";
+import AdminShowtimeList from "./components/AdminShowtimeList";
+import AdminUserList from "./components/AdminUserList";
 
 
-const App = () =>{
-
-  const isAdminRoute = useLocation().pathname.startsWith('/admin')
+const App = () => {
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith('/admin');
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
 
   return(
     <ErrorBoundary>
@@ -25,24 +35,29 @@ const App = () =>{
         <Toaster/>
         {!isAdminRoute && <Navbar/>}
         <Routes>
+          {/* Public Routes */}
           <Route path="/" element={<Home/>} />
           <Route path="/movies" element={<Movies/>} />
           <Route path="/movies/:id" element={<MovieDetails/>} />
-          <Route path="/movies/:id/:date" element={
-            <ProtectedRoute>
-              <SeatLayout/>
-            </ProtectedRoute>
-          } />
-          <Route path="/my-bookings" element={
-            <ProtectedRoute>
-              <MyBookings/>
-            </ProtectedRoute>
-          } />
-          <Route path="/favorite" element={
-            <ProtectedRoute>
-              <Favorite/>
-            </ProtectedRoute>
-          } />
+
+          {/* Protected User Routes */}
+          <Route path="/movies/:id/:date" element={<ProtectedRoute><SeatLayout/></ProtectedRoute>} />
+          <Route path="/my-bookings" element={<ProtectedRoute><MyBookings/></ProtectedRoute>} />
+          <Route path="/favorites" element={<ProtectedRoute><Favorite/></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><UserProfile/></ProtectedRoute>} />
+
+          {/* Admin Routes (protected, nested) */}
+          <Route path="/admin" element={<ProtectedRoute requireAdmin={true}><AdminDashboard/></ProtectedRoute>}>
+            <Route index element={<AdminMovieList/>} />
+            <Route path="movies" element={<AdminMovieList/>} />
+            <Route path="theaters" element={<AdminTheaterList/>} />
+            <Route path="rooms" element={<AdminRoomList/>} />
+            <Route path="movies/add" element={<AdminMovieForm/>} />
+            <Route path="movies/edit/:id" element={<AdminMovieForm/>} />
+            <Route path="showtimes" element={<AdminShowtimeList/>} />
+            <Route path="users" element={<AdminUserList/>} />
+            <Route path="settings" element={<AdminSettings/>} />
+          </Route>
         </Routes>
         {!isAdminRoute && <Footer/>}
         <ApiTestPanel />

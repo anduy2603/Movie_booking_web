@@ -1,6 +1,7 @@
 import time
 from typing import Dict, Tuple
-from fastapi import Request, HTTPException, status
+from fastapi import Request, status
+from fastapi.responses import JSONResponse, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from collections import defaultdict, deque
 
@@ -23,11 +24,32 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         # Làm sạch các request cũ
         self._clean_old_requests(client_ip, current_time)
         
+        # Nếu là preflight OPTIONS, trả ngay 200 (không tính giới hạn)
+        if request.method == "OPTIONS":
+            # Ensure CORS preflight is handled quickly and does not get rate-limited
+            origin = request.headers.get("origin") or "*"
+            headers = {
+                "Access-Control-Allow-Origin": origin,
+                "Access-Control-Allow-Credentials": "true",
+                "Access-Control-Allow-Headers": (
+                    "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-CSRF-Token"
+                ),
+                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
+            }
+            return Response(status_code=200, headers=headers)
+
         # Kiểm tra số lượng request
         if len(self.requests[client_ip]) >= self.calls:
-            raise HTTPException(
+            origin = request.headers.get("origin") or "*"
+            headers = {
+                "Access-Control-Allow-Origin": origin,
+                "Access-Control-Allow-Credentials": "true",
+                "Access-Control-Allow-Headers": "Authorization, Content-Type",
+            }
+            return JSONResponse(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail=f"Rate limit exceeded: {self.calls} requests per {self.period} seconds"
+                content={"detail": f"Rate limit exceeded: {self.calls} requests per {self.period} seconds"},
+                headers=headers,
             )
         
         # Thêm request mới
@@ -63,6 +85,19 @@ class AuthRateLimitMiddleware(BaseHTTPMiddleware):
         # Chỉ áp dụng cho auth endpoints
         if not request.url.path.startswith("/auth/"):
             return await call_next(request)
+
+        # Allow preflight through without counting
+        if request.method == "OPTIONS":
+            origin = request.headers.get("origin") or "*"
+            headers = {
+                "Access-Control-Allow-Origin": origin,
+                "Access-Control-Allow-Credentials": "true",
+                "Access-Control-Allow-Headers": (
+                    "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-CSRF-Token"
+                ),
+                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
+            }
+            return Response(status_code=200, headers=headers)
         
         client_ip = request.client.host if request.client else "unknown"
         current_time = time.time()
@@ -72,9 +107,16 @@ class AuthRateLimitMiddleware(BaseHTTPMiddleware):
         
         # Kiểm tra số lượng request
         if len(self.requests[client_ip]) >= self.calls:
-            raise HTTPException(
+            origin = request.headers.get("origin") or "*"
+            headers = {
+                "Access-Control-Allow-Origin": origin,
+                "Access-Control-Allow-Credentials": "true",
+                "Access-Control-Allow-Headers": "Authorization, Content-Type",
+            }
+            return JSONResponse(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail=f"Auth rate limit exceeded: {self.calls} requests per {self.period} seconds"
+                content={"detail": f"Auth rate limit exceeded: {self.calls} requests per {self.period} seconds"},
+                headers=headers,
             )
         
         # Thêm request mới

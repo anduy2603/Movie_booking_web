@@ -1,33 +1,60 @@
-import React, { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router'
-import { dummyDateTimeData, dummyShowsData } from '../assets/assets'
-import BlurCircle from '../components/BlurCircle'
-import { Heart, PlayCircleIcon, StarIcon } from 'lucide-react'
-import timeFormat from '../lib/timeFormat'
-import DateSelect from '../components/DateSelect'
-import MovieCard from '../components/MovieCard'
-import Loading from '../components/Loading'
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { movieService, showtimeService, favoriteService } from '../services';
+import BlurCircle from '../components/BlurCircle';
+import { Heart, PlayCircleIcon, StarIcon } from 'lucide-react';
+import timeFormat from '../lib/timeFormat';
+import DateSelect from '../components/DateSelect';
+import MovieCard from '../components/MovieCard';
+import Loading from '../components/Loading';
+import { toast } from 'react-hot-toast';
+import { useAuth } from '../hooks/useAuth';
 
 const MovieDetails = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { id } = useParams();
+  
+  const [loading, setLoading] = useState(true);
+  const [movie, setMovie] = useState(null);
+  const [showtimes, setShowtimes] = useState([]);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [similarMovies, setSimilarMovies] = useState([]);
 
-  const navigate = useNavigate()
+  const fetchMovieDetails = async () => {
+    try {
+      setLoading(true);
+      const [movieResponse, showtimesResponse] = await Promise.all([
+        movieService.getMovieByIdRequest(id),
+        showtimeService.getShowtimesRequest(id, selectedDate)
+      ]);
 
-  const {id} = useParams()
-  const [show, setShow] = useState(null)
+      setMovie(movieResponse.data);
+      setShowtimes(showtimesResponse.data);
 
-  const getShow = async () => {
-    const show = dummyShowsData.find(show => show._id === id)
-    if(show){
-      setShow({
-        movie: show,
-        dateTime: dummyDateTimeData
-      })
+      // Check if movie is in user's favorites
+      if (user) {
+        try {
+          const favoriteResponse = await favoriteService.checkFavoriteRequest(id);
+          setIsFavorite(favoriteResponse.data.isFavorite);
+        } catch (error) {
+          console.error('Error checking favorite status:', error);
+        }
+      }
+
+    } catch (error) {
+      toast.error('Failed to load movie details');
+      console.error('Error fetching movie details:', error);
+      navigate('/movies');
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    getShow()
-  }, [id])
+    fetchMovieDetails();
+  }, [id, selectedDate]);
 
   return show ? (
     <div className='px-6 md:px-16 lg:px-40 pt-30 md:pt-50'>
@@ -46,8 +73,67 @@ const MovieDetails = () => {
             <p className='text-gray-400 mt-2 text-sm leading-tight max-w-xl'>{show.movie.overview}</p>
             
             <p>
-              {timeFormat(show.movie.runtime)} · {show.movie.genres.map(genres => genres.name).join(", ")} · {show.movie.release_date.split("-")[0]}
+              {timeFormat(movie.runtime)} · {movie.genres.map(genre => genre.name).join(", ")} · {movie.release_date.split("-")[0]}
             </p>
+
+            <div className='flex items-center gap-4 mt-4'>
+              <button 
+                className='flex items-center gap-2 px-6 py-3 rounded-lg bg-primary text-white hover:bg-primary/90'
+                onClick={() => document.querySelector('#showtimes').scrollIntoView({ behavior: 'smooth' })}
+              >
+                Book Tickets
+              </button>
+              
+              {user && (
+                <button 
+                  onClick={async () => {
+                    try {
+                      if (isFavorite) {
+                        await favoriteService.removeFavoriteRequest(id);
+                        toast.success('Removed from favorites');
+                      } else {
+                        await favoriteService.addFavoriteRequest(id);
+                        toast.success('Added to favorites');
+                      }
+                      setIsFavorite(!isFavorite);
+                    } catch (error) {
+                      toast.error('Failed to update favorites');
+                    }
+                  }}
+                  className='p-3 rounded-lg border border-gray-700 hover:border-primary'
+                >
+                  <Heart className={`w-6 h-6 ${isFavorite ? 'fill-primary text-primary' : ''}`} />
+                </button>
+              )}
+            </div>
+
+            <div id="showtimes" className='mt-12'>
+              <h2 className='text-2xl font-semibold mb-4'>Select Date & Showtime</h2>
+              <DateSelect 
+                selectedDate={selectedDate}
+                onDateSelect={setSelectedDate}
+              />
+
+              <div className='mt-6'>
+                {showtimes.length > 0 ? (
+                  <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+                    {showtimes.map(showtime => (
+                      <div 
+                        key={showtime.id}
+                        className='p-4 rounded-lg border border-gray-700 hover:border-primary cursor-pointer'
+                        onClick={() => navigate(`/booking/${showtime.id}`)}
+                      >
+                        <p className='font-semibold'>{new Date(showtime.start_time || showtime.startTime).toLocaleTimeString()}</p>
+                        <p className='text-sm text-gray-400'>{showtime.theater?.name || showtime.theater_name || ''}</p>
+                        <p className='text-sm text-gray-400'>{showtime.theater?.location || ''}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className='text-gray-400'>No showtimes available for this date.</p>
+                )}
+              </div>
+            </div>
 
             <div className='flex items-center flex-wrap gap-4 mt-4'>
               <button className='flex items-center gap-2 px-7 py-3 text-sm bg-gray-800 

@@ -1,9 +1,10 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useUser } from '../hooks/useAuth';
+import { toast } from 'react-hot-toast';
 
-const ProtectedRoute = ({ children, requireAuth = true }) => {
-  const { isAuthenticated, loading } = useUser();
+const ProtectedRoute = ({ children, requireAuth = true, requireAdmin = false }) => {
+  const { isAuthenticated, loading, user } = useUser();
   const location = useLocation();
 
   // Hiển thị loading khi đang kiểm tra authentication
@@ -15,12 +16,19 @@ const ProtectedRoute = ({ children, requireAuth = true }) => {
     );
   }
 
-  // Nếu route yêu cầu authentication nhưng user chưa đăng nhập
+  // Kiểm tra authentication
   if (requireAuth && !isAuthenticated) {
+    toast.error('Please login to continue');
     return <Navigate to="/" state={{ from: location }} replace />;
   }
 
-  // Nếu route không yêu cầu authentication hoặc user đã đăng nhập
+  // Kiểm tra quyền admin
+  if (requireAdmin && (!user || user.role !== 'admin')) {
+    toast.error('Admin access required');
+    return <Navigate to="/" state={{ from: location }} replace />;
+  }
+
+  // Nếu đã pass tất cả điều kiện
   return children;
 };
 

@@ -3,12 +3,15 @@ import { toast } from 'react-hot-toast';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
+console.log('API Base URL:', API_BASE_URL);
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
   timeout: 10000, // 10 seconds timeout
+  withCredentials: true, // Enable sending cookies
 });
 
 // Helper function to suppress toast for specific requests
@@ -25,6 +28,23 @@ api.interceptors.request.use(
       ...config.params,
       _t: Date.now(),
     };
+
+    // Add auth token if available
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      // Try to get token from cookie as fallback
+      const tokenFromCookie = document.cookie.split('; ').find(row => row.startsWith('token='));
+      if (tokenFromCookie) {
+        const token = tokenFromCookie.split('=')[1];
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    }
+
+    // Add language preference if needed
+    config.headers['Accept-Language'] = 'vi';
+
     return config;
   },
   (error) => {

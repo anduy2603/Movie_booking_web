@@ -23,7 +23,7 @@ const FeaturedSection = () => {
 
         <div className='flex flex-wrap justify-center gap-8 mt-8'>
             {dummyShowsData.slice(0,9).map((show)=>(
-                <MovieCard key={show._id} movie={show}/>
+                <MovieCard key={show.id || show._id || show.title} movie={show}/>
             ) )}
         </div>
 
