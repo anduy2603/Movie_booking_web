@@ -35,6 +35,10 @@ api.interceptors.request.use(
 // Response interceptor
 api.interceptors.response.use(
   (response) => {
+    // Handle success messages if provided by the server
+    if (response?.data?.message && !response.config?.suppressToast) {
+      toast.success(response.data.message);
+    }
     return response;
   },
   (error) => {
@@ -50,50 +54,80 @@ api.interceptors.response.use(
       console.error('Failed to log API error', e);
     }
 
+    // Skip toast if suppressed
+    if (error.config?.suppressToast) {
+      return Promise.reject(error);
+    }
+
     // Handle common errors
     if (error.response) {
       const { status, data } = error.response;
       
       switch (status) {
+        case 400:
+          // Bad Request
+          toast.error(data?.message || data?.detail || 'Yêu cầu không hợp lệ.');
+          break;
+
         case 401:
           // Unauthorized - token expired or invalid
           localStorage.removeItem('token');
-          if (!error.config?.suppressToast && window.location.pathname !== '/') {
+          if (window.location.pathname !== '/') {
             toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
             window.location.href = '/';
           }
           break;
+
         case 403:
-          // Only show permission error if not suppressed
-          if (!error.config?.suppressToast) {
-            toast.error('Bạn không có quyền thực hiện hành động này.');
-          }
+          // Forbidden - user doesn't have required permissions
+          toast.error(data?.message || 'Bạn không có quyền thực hiện hành động này.');
           break;
+
         case 404:
-          toast.error('Không tìm thấy dữ liệu.');
+          // Not Found
+          toast.error(data?.message || 'Không tìm thấy dữ liệu yêu cầu.');
           break;
+
+        case 409:
+          // Conflict
+          toast.error(data?.message || 'Dữ liệu đã tồn tại hoặc có xung đột.');
+          break;
+
         case 422:
           // Validation errors
-          if (data && data.detail && Array.isArray(data.detail)) {
+          if (data?.detail && Array.isArray(data.detail)) {
+            // Handle multiple validation errors
             data.detail.forEach(err => {
-              toast.error(err.msg || err.message || 'Dữ liệu không hợp lệ.');
+              const errorMsg = err.msg || err.message;
+              if (errorMsg) toast.error(errorMsg);
             });
           } else {
-            toast.error((data && data.detail) || 'Dữ liệu không hợp lệ.');
+            toast.error(data?.message || data?.detail || 'Dữ liệu không hợp lệ.');
           }
           break;
+
+        case 429:
+          // Too Many Requests
+          toast.error('Quá nhiều yêu cầu. Vui lòng thử lại sau.');
+          break;
+
         case 500:
+        case 502:
+        case 503:
+          // Server Errors
           toast.error('Lỗi máy chủ. Vui lòng thử lại sau.');
           break;
+
         default:
-          toast.error((data && data.detail) || 'Đã xảy ra lỗi. Vui lòng thử lại.');
+          // Unknown error status
+          toast.error(data?.message || data?.detail || 'Đã xảy ra lỗi. Vui lòng thử lại.');
       }
     } else if (error.request) {
-      // Network error
+      // Network error - request made but no response received
       toast.error('Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.');
     } else {
-      // Other errors
-      toast.error('Đã xảy ra lỗi không xác định.');
+      // Error in setting up the request
+      toast.error('Đã xảy ra lỗi trong quá trình xử lý yêu cầu.');
     }
 
     return Promise.reject(error);
