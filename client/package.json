@@ -10,6 +10,7 @@
     "ajv": "^6.12.6",
     "ansi-styles": "^4.3.0",
     "argparse": "^2.0.1",
+    "axios": "^1.13.0",
     "balanced-match": "^1.0.2",
     "bcp-47": "^2.1.0",
     "bcp-47-match": "^2.0.3",

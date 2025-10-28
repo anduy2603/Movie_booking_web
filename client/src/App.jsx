@@ -11,6 +11,7 @@ import {Toaster} from 'react-hot-toast'
 import Footer from "./components/Footer";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ApiTestPanel from "./components/ApiTestPanel";
 
 
 const App = () =>{
@@ -42,6 +43,7 @@ const App = () =>{
         } />
       </Routes>
       {!isAdminRoute && <Footer/>}
+      <ApiTestPanel />
     </AuthProvider>
   )
 }
