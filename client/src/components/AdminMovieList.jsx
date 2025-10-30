@@ -7,9 +7,11 @@ import { useNavigate } from 'react-router-dom';
 const AdminMovieList = () => {
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log('Component mounted, fetching movies...');
     fetchMovies();
   }, []);
 
@@ -17,8 +19,17 @@ const AdminMovieList = () => {
     try {
       setLoading(true);
       const response = await movieService.getMoviesRequest();
-      setMovies(response.data.items || []);
+      console.log('Movies response:', response);
+      if (response?.data?.data) {
+        setMovies(response.data.data);
+      } else if (response?.data?.items) {
+        setMovies(response.data.items);
+      } else {
+        setMovies([]);
+        console.warn('No movies data in response:', response);
+      }
     } catch (error) {
+      console.error('Error fetching movies:', error);
       toast.error('Failed to load movies');
     } finally {
       setLoading(false);
@@ -70,45 +81,50 @@ const AdminMovieList = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-700">
-            {movies.map((movie) => (
-              <tr key={movie.id} className="hover:bg-gray-700/50">
+            {Array.isArray(movies) && movies.map((movie) => (
+              <tr key={movie?.id || Math.random()} className="hover:bg-gray-700/50">
                 <td className="px-6 py-4">
                   <div className="flex items-center">
                     <img
                       className="h-12 w-20 object-cover rounded"
-                      src={movie.poster_path || movie.poster_url}
-                      alt={movie.title}
+                      src={movie?.poster_path || movie?.poster_url || 'https://via.placeholder.com/200x300?text=No+Image'}
+                      alt={movie?.title || 'Movie poster'}
+                      onError={(e) => {
+                        e.target.src = 'https://via.placeholder.com/200x300?text=No+Image';
+                      }}
                     />
                     <div className="ml-4">
-                      <div className="text-sm font-medium text-white">{movie.title}</div>
+                      <div className="text-sm font-medium text-white">{movie?.title || 'Untitled'}</div>
                       <div className="text-sm text-gray-400">
-                        {movie.genres.map(g => g.name).join(', ')}
+                        {movie?.genre || 'No genre'}
                       </div>
                     </div>
                   </div>
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-300">
-                  {new Date(movie.release_date).toLocaleDateString()}
+                  {movie?.release_date ? new Date(movie.release_date).toLocaleDateString() : 'No date'}
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-300">
-                  {Math.floor(movie.runtime / 60)}h {movie.runtime % 60}m
+                  {movie?.duration ? `${Math.floor(movie.duration / 60)}h ${movie.duration % 60}m` : 'N/A'}
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-300">
-                  {movie.vote_average.toFixed(1)}
+                  {movie?.liked_by_count || 0}
                 </td>
                 <td className="px-6 py-4 text-sm font-medium text-center">
-                  <button
-                    onClick={() => navigate(`/admin/movies/edit/${movie.id}`)}
-                    className="text-blue-400 hover:text-blue-300 mx-2"
-                  >
-                    <Edit className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(movie.id)}
-                    className="text-red-400 hover:text-red-300 mx-2"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
+                    <button
+                      onClick={() => navigate(`/admin/movies/edit/${movie.id}`)}
+                      className="p-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                      title="Edit"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(movie.id)}
+                      className="p-2 bg-red-600 text-white rounded hover:bg-red-700"
+                      title="Delete"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                 </td>
               </tr>
             ))}

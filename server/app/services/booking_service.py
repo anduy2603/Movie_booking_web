@@ -61,4 +61,8 @@ class BookingService(BaseService[Booking, BookingCreate, BookingUpdate]):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking not found")
         return booking
 
+    def get_bookings_by_showtime(self, db: Session, showtime_id: int):
+        """Return all bookings for a given showtime (used to determine occupied seats)."""
+        return self.repository.get_by_showtime(db, showtime_id)
+
 

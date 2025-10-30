@@ -119,3 +119,12 @@ def delete_booking(
         raise HTTPException(status_code=403, detail="Forbidden: You can only delete your own bookings")
     
     return booking_service.delete_booking(db, booking_id)
+
+
+# -------------------- GET BOOKINGS BY SHOWTIME --------------------
+@router.get("/showtime/{showtime_id}", response_model=List[BookingRead])
+def get_bookings_for_showtime(showtime_id: int, db: Session = Depends(get_db)):
+    """Return all bookings for a given showtime. This is public to allow front-end
+    to determine which seats are already occupied when users select seats."""
+    bookings = booking_service.get_bookings_by_showtime(db, showtime_id)
+    return bookings

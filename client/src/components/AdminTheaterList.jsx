@@ -7,7 +7,7 @@ const AdminTheaterList = () => {
   const [theaters, setTheaters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({ name: '', address: '' });
+  const [formData, setFormData] = useState({ name: '', city: '', address: '' });
   const [editId, setEditId] = useState(null);
 
   useEffect(() => {
@@ -18,9 +18,18 @@ const AdminTheaterList = () => {
     try {
       setLoading(true);
       const res = await theaterService.getTheatersRequest();
-      setTheaters(res.data.items || []);
+      console.log('Theaters response:', res);
+      // Check if response has data property
+      if (res?.data?.data) {
+        setTheaters(res.data.data);
+      } else if (res?.data?.items) {
+        setTheaters(res.data.items);
+      } else {
+        setTheaters([]);
+        console.warn('No theaters data in response:', res);
+      }
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching theaters:', err);
       toast.error('Failed to load theaters');
     } finally {
       setLoading(false);
@@ -30,26 +39,67 @@ const AdminTheaterList = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Validate form data
+      if (!formData.name?.trim() || !formData.city?.trim() || !formData.address?.trim()) {
+        toast.error('Name, city and address are required');
+        return;
+      }
+
+      // Kiểm tra token và quyền admin
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Please login first');
+        return;
+      }
+
+      console.log('Submitting theater with data:', formData);
+      
       if (editId) {
-        await theaterService.updateTheaterRequest(editId, formData);
-        toast.success('Theater updated');
+        const response = await theaterService.updateTheaterRequest(editId, formData);
+        console.log('Update response:', response);
+        toast.success('Theater updated successfully');
       } else {
-        await theaterService.createTheaterRequest(formData);
-        toast.success('Theater created');
+        const response = await theaterService.createTheaterRequest(formData);
+        console.log('Create response:', response);
+        toast.success('Theater created successfully');
       }
       setIsModalOpen(false);
       setEditId(null);
-      setFormData({ name: '', address: '' });
+      setFormData({ name: '', city: '', address: '' });
       fetchTheaters();
     } catch (err) {
-      console.error(err);
-      toast.error(err.response?.data?.detail || 'Failed to save theater');
+      console.error('Theater operation failed:', err);
+      const errorDetails = err.response?.data?.detail;
+      console.log('Error details:', errorDetails);
+      
+      let errorMsg = 'Failed to save theater';
+      if (errorDetails) {
+        if (Array.isArray(errorDetails)) {
+          errorMsg = errorDetails.map(e => e.msg || e.message).join(', ');
+        } else if (typeof errorDetails === 'string') {
+          errorMsg = errorDetails;
+        } else if (typeof errorDetails === 'object') {
+          errorMsg = Object.values(errorDetails).join(', ');
+        }
+      }
+      
+      if (err.response?.status === 401) {
+        errorMsg = 'Please login with admin privileges';
+      } else if (err.response?.status === 403) {
+        errorMsg = 'You do not have permission to perform this action';
+      }
+      
+      toast.error(errorMsg);
     }
   };
 
   const handleEdit = (t) => {
     setEditId(t.id);
-    setFormData({ name: t.name || '', address: t.address || '' });
+    setFormData({
+      name: t.name || '',
+      city: t.city || '',
+      address: t.address || ''
+    });
     setIsModalOpen(true);
   };
 
@@ -71,7 +121,14 @@ const AdminTheaterList = () => {
     <div className="container mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold">Theater Management</h1>
-        <button onClick={() => { setFormData({ name: '', address: '' }); setIsModalOpen(true); }} className="flex items-center px-4 py-2 bg-primary text-white rounded-lg">
+        <button 
+          onClick={() => { 
+            setFormData({ name: '', city: '', address: '' }); 
+            setEditId(null);
+            setIsModalOpen(true); 
+          }} 
+          className="flex items-center px-4 py-2 bg-primary text-white rounded-lg"
+        >
           <Plus className="w-5 h-5 mr-2" /> Add Theater
         </button>
       </div>
@@ -81,6 +138,7 @@ const AdminTheaterList = () => {
           <thead className="bg-gray-700">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-300">Name</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300">City</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-300">Address</th>
               <th className="px-6 py-3 text-center text-xs font-medium text-gray-300">Actions</th>
             </tr>
@@ -89,6 +147,7 @@ const AdminTheaterList = () => {
             {theaters.map(t => (
               <tr key={t.id} className="hover:bg-gray-700/50">
                 <td className="px-6 py-4 text-sm text-gray-300">{t.name}</td>
+                <td className="px-6 py-4 text-sm text-gray-300">{t.city}</td>
                 <td className="px-6 py-4 text-sm text-gray-300">{t.address}</td>
                 <td className="px-6 py-4 text-center">
                   <button onClick={() => handleEdit(t)} className="text-blue-400 mx-2"><Edit2 className="w-5 h-5"/></button>
@@ -107,11 +166,33 @@ const AdminTheaterList = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm mb-1">Name</label>
-                <input value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full bg-gray-700 p-2 rounded" required />
+                <input 
+                  value={formData.name} 
+                  onChange={(e) => setFormData({...formData, name: e.target.value})} 
+                  className="w-full bg-gray-700 p-2 rounded" 
+                  placeholder="Enter theater name"
+                  required 
+                />
+              </div>
+              <div>
+                <label className="block text-sm mb-1">City</label>
+                <input 
+                  value={formData.city} 
+                  onChange={(e) => setFormData({...formData, city: e.target.value})} 
+                  className="w-full bg-gray-700 p-2 rounded" 
+                  placeholder="Enter city"
+                  required 
+                />
               </div>
               <div>
                 <label className="block text-sm mb-1">Address</label>
-                <input value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} className="w-full bg-gray-700 p-2 rounded" required />
+                <input 
+                  value={formData.address} 
+                  onChange={(e) => setFormData({...formData, address: e.target.value})} 
+                  className="w-full bg-gray-700 p-2 rounded" 
+                  placeholder="Enter full address"
+                  required 
+                />
               </div>
               <div className="flex justify-end gap-4">
                 <button type="button" onClick={() => { setIsModalOpen(false); setEditId(null); }} className="px-4 py-2 bg-gray-700 rounded">Cancel</button>

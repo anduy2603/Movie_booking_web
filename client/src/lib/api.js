@@ -24,9 +24,6 @@ export const suppressToastForRequest = (config) => {
 api.interceptors.request.use(
   async (config) => {
     try {
-      // Test server connection first
-      await axios.get(`${API_BASE_URL}/`);
-      
       // Add timestamp to prevent caching
       config.params = {
         ...config.params,
