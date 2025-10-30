@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import AuthModal from './AuthModal';
 import '../styles/auth.css';
 
-const Login = ({ onClose, onSwitchToRegister }) => {
+const Login = ({ isOpen = false, onClose, onSwitchToRegister }) => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -44,7 +44,7 @@ const Login = ({ onClose, onSwitchToRegister }) => {
   };
 
   return (
-    <AuthModal isOpen={true}>
+    <AuthModal isOpen={isOpen}>
       <div className="auth-modal-content" style={{
         position: 'relative',
         margin: '0 auto',

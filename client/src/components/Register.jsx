@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import AuthModal from './AuthModal';
 import '../styles/auth.css';
 
-const Register = ({ onClose, onSwitchToLogin }) => {
+const Register = ({ isOpen = false, onClose, onSwitchToLogin }) => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -30,23 +30,50 @@ const Register = ({ onClose, onSwitchToLogin }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
     
-    console.log('Register form submitted:', formData);
-    
-    // Validation
-    if (!formData.email || !formData.password || !formData.full_name) {
-      setError('Vui lòng điền đầy đủ thông tin bắt buộc');
-      return;
-    }
+    try {
+      console.log('Register form submitted:', formData);
+      
+      // Validation
+      if (!formData.email || !formData.password || !formData.full_name) {
+        setError('Vui lòng điền đầy đủ thông tin bắt buộc');
+        setLoading(false);
+        return;
+      }
 
-    if (formData.password !== formData.confirmPassword) {
-      setError('Mật khẩu xác nhận không khớp');
-      return;
-    }
+      if (formData.password !== formData.confirmPassword) {
+        setError('Mật khẩu xác nhận không khớp');
+        setLoading(false);
+        return;
+      }
 
-    if (formData.password.length < 8) {
-      setError('Mật khẩu phải có ít nhất 8 ký tự');
-      return;
+      if (formData.password.length < 8) {
+        setError('Mật khẩu phải có ít nhất 8 ký tự');
+        setLoading(false);
+        return;
+      }
+
+      // Remove confirmPassword from the data sent to server
+      const registrationData = {
+        email: formData.email,
+        password: formData.password,
+        full_name: formData.full_name,
+        username: formData.username || formData.email
+      };
+
+      const result = await register(registrationData);
+      
+      if (result.success) {
+        onClose(); // Close the registration modal
+      } else {
+        setError(result.error || 'Đăng ký thất bại, vui lòng thử lại');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      setError('Đăng ký thất bại, vui lòng thử lại sau');
+    } finally {
+      setLoading(false);
     }
 
     setLoading(true);
@@ -91,7 +118,7 @@ const Register = ({ onClose, onSwitchToLogin }) => {
   };
 
   return (
-    <AuthModal isOpen={true}>
+    <AuthModal isOpen={isOpen}>
       <div className="auth-modal-content" style={{ 
         maxHeight: '90vh', 
         overflowY: 'auto',

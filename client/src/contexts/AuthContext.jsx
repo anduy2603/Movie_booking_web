@@ -64,23 +64,23 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (userData) => {
-    console.log('AuthContext register called with:', userData);
     try {
-      console.log('Calling authService.registerRequest...');
       const resp = await authService.registerRequest(userData);
-      console.log('Register response:', resp);
       const data = resp.data;
       
-      // Set token and user data
-      setToken(data.access_token);
-      setAuthToken(data.access_token);
-      setUser(data.user);
-      localStorage.setItem('token', data.access_token);
-      
-      // Show success message
-      toast.success('Đăng ký thành công!');
-      
-      return { success: true };
+      if (data.access_token) {
+        // Set token and user data
+        setToken(data.access_token);
+        setAuthToken(data.access_token);
+        setUser(data.user);
+        localStorage.setItem('token', data.access_token);
+        
+        // Show success message
+        toast.success('Đăng ký thành công!');
+        return { success: true };
+      } else {
+        throw new Error('Token không hợp lệ từ server');
+      }
     } catch (error) {
       console.error('Register error:', error?.response?.data || error);
       

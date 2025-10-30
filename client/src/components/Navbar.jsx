@@ -5,15 +5,26 @@ import { assets } from '../assets/assets';
 import { useDropdown } from '../hooks/useDropdown';
 import { useUser } from '../hooks/useAuth';
 import Login from './Login';
-import SimpleRegister from './SimpleRegister';
+import Register from './Register';
 
 const Navbar = () => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
-  const { isMenuOpen, toggleMenu, dropdownRef } = useDropdown();
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const { toggleMenu, dropdownRef } = useDropdown();
   const { user, isAuthenticated, logout } = useUser();
   const navigate = useNavigate();
+
+  const handleSwitchToRegister = () => {
+    setShowLogin(false);
+    setShowRegister(true);
+  };
+
+  const handleSwitchToLogin = () => {
+    setShowRegister(false);
+    setShowLogin(true);
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -29,19 +40,19 @@ const Navbar = () => {
       {/* Mobile Menu */}
       <div className={`max-md:absolute max-md:top-0 max-md:left-0 max-md:font-medium max-md:text-lg z-50 flex flex-col md:flex-row items-center max-md:justify-center
         gap-8 md:px-8 py-3 max-md:h-screen md:rounded-full bg-black/80 md:bg-white/10 md:border border-gray-300/20 overflow-hidden 
-        transition-all duration-300 ease-in-out ${isOpen ? 'max-md:w-full' : 'max-md:w-0'}`}>
-        <XIcon className="md:hidden absolute top-6 right-6 w-6 h-6 cursor-pointer" onClick={() => setIsOpen(!isOpen)} />
-        <Link onClick={() => { scrollTo(0, 0); setIsOpen(false); }} to="/">Home</Link>
-        <Link onClick={() => { scrollTo(0, 0); setIsOpen(false); }} to="/movies">Movies</Link>
-        <Link onClick={() => { scrollTo(0, 0); setIsOpen(false); }} to="/">Theaters</Link>
-        <Link onClick={() => { scrollTo(0, 0); setIsOpen(false); }} to="/">Release</Link>
-        <Link onClick={() => { scrollTo(0, 0); setIsOpen(false); }} to="/favorite">Favorites</Link>
+        transition-all duration-300 ease-in-out ${isMenuOpen ? 'max-md:w-full' : 'max-md:w-0'}`}>
+        <XIcon className="md:hidden absolute top-6 right-6 w-6 h-6 cursor-pointer" onClick={() => setIsMenuOpen(!isMenuOpen)} />
+        <Link onClick={() => { scrollTo(0, 0); setIsMenuOpen(false); }} to="/">Home</Link>
+        <Link onClick={() => { scrollTo(0, 0); setIsMenuOpen(false); }} to="/movies">Movies</Link>
+        <Link onClick={() => { scrollTo(0, 0); setIsMenuOpen(false); }} to="/">Theaters</Link>
+        <Link onClick={() => { scrollTo(0, 0); setIsMenuOpen(false); }} to="/">Release</Link>
+        <Link onClick={() => { scrollTo(0, 0); setIsMenuOpen(false); }} to="/favorite">Favorites</Link>
       </div>
 
       {/* Right Section */}
       <div className="flex items-center gap-4">
         <SearchIcon className="max-md:hidden w-6 h-6 cursor-pointer" />
-        
+
         {!isAuthenticated ? (
           <button
             onClick={() => setShowLogin(true)}
@@ -61,13 +72,13 @@ const Navbar = () => {
             {/* User Menu Dropdown */}
             <div className="relative" ref={dropdownRef}>
               <button
-                onClick={toggleMenu}
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
                 className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center"
               >
                 <User className="w-6 h-6" />
               </button>
 
-              {isMenuOpen && (
+              {userMenuOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-lg shadow-lg py-2 z-50">
                   <div className="px-4 py-2 border-b border-gray-700">
                     <p className="text-sm text-white font-medium">{user?.full_name}</p>
@@ -107,25 +118,17 @@ const Navbar = () => {
       </div>
 
       {/* Auth Modals */}
-      {showLogin && (
-        <Login 
-          onClose={() => setShowLogin(false)} 
-          onRegisterClick={() => {
-            setShowLogin(false);
-            setShowRegister(true);
-          }} 
-        />
-      )}
+      <Login 
+        isOpen={showLogin}
+        onClose={() => setShowLogin(false)}
+        onSwitchToRegister={handleSwitchToRegister}
+      />
 
-      {showRegister && (
-        <SimpleRegister 
-          onClose={() => setShowRegister(false)} 
-          onLoginClick={() => {
-            setShowRegister(false);
-            setShowLogin(true);
-          }} 
-        />
-      )}
+      <Register 
+        isOpen={showRegister}
+        onClose={() => setShowRegister(false)}
+        onSwitchToLogin={handleSwitchToLogin}
+      />
     </div>
   );
 };

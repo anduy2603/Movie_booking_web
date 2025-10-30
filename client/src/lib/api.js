@@ -22,30 +22,39 @@ export const suppressToastForRequest = (config) => {
 
 // Request interceptor
 api.interceptors.request.use(
-  (config) => {
-    // Add timestamp to prevent caching
-    config.params = {
-      ...config.params,
-      _t: Date.now(),
-    };
+  async (config) => {
+    try {
+      // Test server connection first
+      await axios.get(`${API_BASE_URL}/`);
+      
+      // Add timestamp to prevent caching
+      config.params = {
+        ...config.params,
+        _t: Date.now(),
+      };
 
-    // Add auth token if available
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    } else {
-      // Try to get token from cookie as fallback
-      const tokenFromCookie = document.cookie.split('; ').find(row => row.startsWith('token='));
-      if (tokenFromCookie) {
-        const token = tokenFromCookie.split('=')[1];
+      // Add auth token if available
+      const token = localStorage.getItem('token');
+      if (token) {
         config.headers.Authorization = `Bearer ${token}`;
+      } else {
+        // Try to get token from cookie as fallback
+        const tokenFromCookie = document.cookie.split('; ').find(row => row.startsWith('token='));
+        if (tokenFromCookie) {
+          const token = tokenFromCookie.split('=')[1];
+          config.headers.Authorization = `Bearer ${token}`;
+        }
       }
+
+      // Add language preference if needed
+      config.headers['Accept-Language'] = 'vi';
+
+      return config;
+    } catch (error) {
+      console.error('Server connection error:', error);
+      toast.error('Không thể kết nối đến server. Vui lòng thử lại sau.');
+      return Promise.reject(error);
     }
-
-    // Add language preference if needed
-    config.headers['Accept-Language'] = 'vi';
-
-    return config;
   },
   (error) => {
     return Promise.reject(error);
