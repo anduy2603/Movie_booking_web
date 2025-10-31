@@ -7,6 +7,7 @@ from app.services.showtime_service import ShowtimeService
 from app.repositories.showtime_repo import ShowtimeRepository
 from app.schemas.base_schema import PaginatedResponse
 from app.auth.permissions import requires_role
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/showtimes", tags=["Showtimes"])
 showtime_service = ShowtimeService(ShowtimeRepository())
@@ -75,3 +76,13 @@ def delete_showtime(showtime_id: int, db: Session = Depends(get_db)):
     if not deleted:
         raise HTTPException(status_code=404, detail="Showtime not found")
     return {"message": "Showtime deleted successfully"}
+
+
+# -------------------- BULK DELETE --------------------
+class IdsPayload(BaseModel):
+    ids: List[int]
+
+@router.post("/batch-delete", dependencies=[Depends(requires_role("admin"))])
+def batch_delete_showtimes(payload: IdsPayload, db: Session = Depends(get_db)):
+    deleted = showtime_service.delete_many(db, payload.ids or [])
+    return {"deleted": deleted}

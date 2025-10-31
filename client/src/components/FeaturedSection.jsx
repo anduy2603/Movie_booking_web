@@ -1,13 +1,29 @@
 import { ArrowRightIcon } from 'lucide-react'
-import React from 'react'
-import { useNavigate } from 'react-router'
+import React, { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import BlurCircle from './BlurCircle'
-import { dummyShowsData } from '../assets/assets'
 import MovieCard from './MovieCard'
+import { movieService } from '../services'
 
 const FeaturedSection = () => {
-
     const navigate = useNavigate()
+    const [movies, setMovies] = useState([])
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+      const load = async () => {
+        try {
+          setLoading(true)
+          const resp = await movieService.getMoviesRequest(1, 9)
+          setMovies(resp.data?.data || [])
+        } catch (e) {
+          setMovies([])
+        } finally {
+          setLoading(false)
+        }
+      }
+      load()
+    }, [])
 
   return (
     <div className='px-6 md:px-16 lg:px-24 xl:px-44 overflow-hidden'>
@@ -22,9 +38,13 @@ const FeaturedSection = () => {
         </div>
 
         <div className='flex flex-wrap justify-center gap-8 mt-8'>
-            {dummyShowsData.slice(0,9).map((show)=>(
-                <MovieCard key={show.id || show._id || show.title} movie={show}/>
-            ) )}
+            {loading ? (
+              <div className='text-gray-400'>Loading...</div>
+            ) : (
+              movies.map((movie)=>(
+                <MovieCard key={movie.id || movie.title} movie={movie}/>
+              ))
+            )}
         </div>
 
         <div className='flex justify-center mt-20'>

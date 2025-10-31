@@ -18,32 +18,48 @@ const AdminMovieList = () => {
   const fetchMovies = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await movieService.getMoviesRequest();
       console.log('Movies response:', response);
-      if (response?.data?.data) {
-        setMovies(response.data.data);
-      } else if (response?.data?.items) {
-        setMovies(response.data.items);
-      } else {
-        setMovies([]);
-        console.warn('No movies data in response:', response);
+      
+      if (!response || !response.data) {
+        throw new Error('Invalid response format from server');
+      }
+
+      const movieData = response.data.data || response.data.items || [];
+      if (!Array.isArray(movieData)) {
+        throw new Error('Movies data is not in the expected format');
+      }
+
+      setMovies(movieData);
+      
+      if (movieData.length === 0) {
+        toast.info('No movies found');
       }
     } catch (error) {
       console.error('Error fetching movies:', error);
-      toast.error('Failed to load movies');
+      setError(error.message || 'Failed to load movies');
+      toast.error(error.message || 'Failed to load movies');
+      setMovies([]);
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async (movieId) => {
+    if (!movieId) {
+      toast.error('Invalid movie ID');
+      return;
+    }
+    
     if (window.confirm('Are you sure you want to delete this movie?')) {
       try {
         await movieService.deleteMovieRequest(movieId);
         toast.success('Movie deleted successfully');
-        fetchMovies();
+        await fetchMovies(); // Refresh the list
       } catch (error) {
-        toast.error('Failed to delete movie');
+        console.error('Error deleting movie:', error);
+        toast.error(error.response?.data?.message || 'Failed to delete movie');
       }
     }
   };

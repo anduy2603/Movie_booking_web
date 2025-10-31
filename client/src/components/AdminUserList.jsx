@@ -17,8 +17,8 @@ const AdminUserList = () => {
     try {
       setLoading(true);
       const response = await userService.getAllUsersRequest(page);
-      setUsers(response.data.items || []);
-      setTotalPages(Math.ceil((response.data.total || 0) / 10));
+      setUsers(response.data?.data || []);
+      setTotalPages(response.data?.pages || Math.ceil((response.data?.total || 0) / 10));
     } catch (error) {
       toast.error('Failed to load users');
       console.error('Error fetching users:', error);
@@ -33,18 +33,26 @@ const AdminUserList = () => {
       toast.success(`User ${isActive ? 'activated' : 'deactivated'} successfully`);
       fetchUsers();
     } catch (error) {
+      console.error('Failed to update user status:', error);
       toast.error('Failed to update user status');
     }
   };
 
   const handleDelete = async (userId) => {
+    const target = users.find(u => u.id === userId)
+    if (target?.role === 'admin') {
+      toast.error('Cannot delete admin accounts')
+      return
+    }
     if (window.confirm('Are you sure you want to delete this user?')) {
       try {
         await userService.deleteUserRequest(userId);
-        toast.success('User deleted successfully');
+        toast.success('User deleted (deactivated) successfully');
         fetchUsers();
       } catch (error) {
-        toast.error('Failed to delete user');
+        console.error('Failed to delete user:', error);
+        const msg = error?.response?.data?.detail || error?.message || 'Failed to delete user'
+        toast.error(msg)
       }
     }
   };

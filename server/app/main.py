@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from app.config.settings import settings
 from app.controllers import movie_controller, user_controller, booking_controller, room_controller, seat_controller, showtime_controller, theater_controller, favorite_controller, auth_controller
 from app.config.error_handler import register_exception_handlers
-from app.middleware import setup_middleware
+from app.middleware import setup_middleware, setup_development_middleware
 
 def create_app():
     app = FastAPI(
@@ -14,7 +14,11 @@ def create_app():
     )
 
     # Setup middleware
-    setup_middleware(app)
+    # Use relaxed middleware in development to avoid rate-limit issues
+    if settings.ENVIRONMENT == "development" or settings.DEBUG:
+        setup_development_middleware(app)
+    else:
+        setup_middleware(app)
 
     # Register Routers 
     app.include_router(movie_controller.router)

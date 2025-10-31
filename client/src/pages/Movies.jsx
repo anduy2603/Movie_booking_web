@@ -31,8 +31,8 @@ const Movies = () => {
         throw new Error('No data received from API');
       }
 
-      setMovies(response.data.items || []);
-      setTotalPages(Math.ceil((response.data.total || 0) / 10));
+      setMovies(response.data?.data || []);
+      setTotalPages(response.data?.pages || Math.ceil((response.data?.total || 0) / (response.data?.size || 10)));
       console.log('Movies loaded:', response.data.items?.length || 0);
     } catch (error) {
       console.error('Error details:', {

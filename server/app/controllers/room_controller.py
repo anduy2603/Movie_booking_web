@@ -9,6 +9,7 @@ from app.config.database import get_db
 from app.services.room_service import RoomService
 from app.repositories.room_repo import RoomRepository
 from app.auth.permissions import requires_role
+from fastapi import HTTPException
 
 router = APIRouter(prefix="/rooms", tags=["Rooms"])
 room_service = RoomService(RoomRepository())
@@ -71,3 +72,9 @@ def update_room(room_id: int, room_in: RoomCreate, db: Session = Depends(get_db)
 def delete_room(room_id: int, db: Session = Depends(get_db)):
     logger.info(f"DELETE /rooms/{room_id} called")
     return room_service.delete_room(db, room_id)
+
+# -------------------- GENERATE SEATS --------------------
+@router.post("/{room_id}/generate-seats", dependencies=[Depends(requires_role("admin"))])
+def generate_seats(room_id: int, overwrite: bool = False, db: Session = Depends(get_db)):
+    logger.info(f"POST /rooms/{room_id}/generate-seats called overwrite={overwrite}")
+    return room_service.generate_seats(db, room_id, overwrite)

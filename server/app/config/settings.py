@@ -37,9 +37,9 @@ class Settings(BaseSettings):
     PASSWORD_REQUIRE_SPECIAL_CHARS: bool = True
     
     # Rate Limiting
-    RATE_LIMIT_CALLS: int = 100
+    RATE_LIMIT_CALLS: int = 1000
     RATE_LIMIT_PERIOD: int = 60  # seconds
-    AUTH_RATE_LIMIT_CALLS: int = 50
+    AUTH_RATE_LIMIT_CALLS: int = 100
     AUTH_RATE_LIMIT_PERIOD: int = 60  # seconds
     
     # IP Whitelist/Blacklist

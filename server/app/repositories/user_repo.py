@@ -32,14 +32,21 @@ class UserRepository(BaseRepository[User, UserCreate, UserRead]):
         return db.scalar(state)
 
     def delete(self, db: Session, user_id: int) -> Optional[User]:
-        """Xóa user theo ID"""
+        """Xóa user theo ID (soft delete to avoid FK issues in dev)"""
         logger.info(f"[UserRepository] Delete user_id={user_id}")
         user = db.get(User, user_id)
         if not user:
             logger.warning(f"[UserRepository] User id={user_id} not found")
             return None
 
-        db.delete(user)
-        db.commit()
-        logger.info(f"[UserRepository] User id={user_id} deleted successfully")
-        return user
+        try:
+            # Soft delete: deactivate instead of physical delete
+            user.is_active = False
+            db.commit()
+            db.refresh(user)
+            logger.info(f"[UserRepository] User id={user_id} deactivated successfully")
+            return user
+        except Exception as e:
+            logger.error(f"[UserRepository] Failed to delete user id={user_id}: {e}")
+            db.rollback()
+            return None

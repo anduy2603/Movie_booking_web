@@ -6,6 +6,8 @@ from app.repositories.room_repo import RoomRepository
 from app.models.room import Room
 from app.schemas.room_schema import RoomCreate, RoomRead, RoomBase
 from app.config.logger import logger
+from app.models.seat import Seat
+import math
 
 class RoomService(BaseService[Room, RoomCreate, RoomBase]):
     def __init__(self, room_repo: Optional[RoomRepository] = None):
@@ -15,6 +17,12 @@ class RoomService(BaseService[Room, RoomCreate, RoomBase]):
         logger.info(f"Creating room '{room_in.name}' in theater {room_in.theater_id}")
         room = self.repository.create(db, room_in)
         logger.info(f"Room created successfully: id={room.id}")
+        # Auto-generate seats based on total_seats right after creating the room
+        try:
+            self.generate_seats(db, room.id, overwrite=True)
+            logger.info(f"Auto-generated seats for room id={room.id}")
+        except Exception as e:
+            logger.warning(f"Failed to auto-generate seats for room id={room.id}: {e}")
         return room
 
     def get_room(self, db: Session, room_id: int) -> RoomRead:
@@ -68,3 +76,45 @@ class RoomService(BaseService[Room, RoomCreate, RoomBase]):
             raise HTTPException(status_code=404, detail="Room not found")
         logger.info(f"Room id={room_id} deleted successfully")
         return {"message": "Room deleted successfully"}
+
+    # -------------------- GENERATE SEATS --------------------
+    def generate_seats(self, db: Session, room_id: int, overwrite: bool = False):
+        room = self.repository.get_by_id(db, room_id)
+        if not room:
+            raise HTTPException(status_code=404, detail="Room not found")
+
+        # If overwrite, delete existing seats
+        existing = db.query(Seat).filter(Seat.room_id == room_id).all()
+        if existing and not overwrite:
+            return {"message": "Seats already exist for this room", "existing": len(existing)}
+        if existing and overwrite:
+            for s in existing:
+                db.delete(s)
+            db.commit()
+
+        total = room.total_seats or 0
+        if total <= 0:
+            raise HTTPException(status_code=400, detail="Room total_seats must be > 0")
+
+        per_row = 10
+        rows_count = int(math.ceil(total / per_row))
+        created = 0
+        current = 0
+        for i in range(rows_count):
+            row_label = chr(ord('A') + i)
+            for num in range(1, per_row + 1):
+                if current >= total:
+                    break
+                seat = Seat(
+                    room_id=room_id,
+                    row=row_label,
+                    number=num,
+                    seat_type='standard',
+                    price_modifier=1.0,
+                    is_active=True,
+                )
+                db.add(seat)
+                created += 1
+                current += 1
+        db.commit()
+        return {"created": created}

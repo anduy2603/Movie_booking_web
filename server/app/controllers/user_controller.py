@@ -76,7 +76,11 @@ def delete_user(
     # Admin có thể xóa bất kỳ user nào, user chỉ có thể xóa chính mình
     if current_user.role != "admin" and current_user.id != user_id:
         raise HTTPException(status_code=403, detail="Forbidden: You can only delete your own account")
-    
+    # Không cho phép xóa tài khoản admin
+    target = user_service.get_by_id(db, user_id)
+    if target and target.role == "admin":
+        raise HTTPException(status_code=403, detail="Cannot delete admin accounts")
+
     logger.info(f"[UserController] delete_user({user_id}) called")
     deleted_user = user_service.delete(db, user_id)
     if not deleted_user:

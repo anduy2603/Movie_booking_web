@@ -50,3 +50,11 @@ class ShowtimeRepository(BaseRepository[Showtime, ShowtimeCreate, ShowtimeBase])
 
     def count_by_room(self, db: Session, room_id: int) -> int:
         return db.query(Showtime).filter(Showtime.room_id == room_id).count()
+
+    # -------------------- BULK DELETE --------------------
+    def delete_many(self, db: Session, ids: List[int]) -> int:
+        if not ids:
+            return 0
+        deleted = db.query(Showtime).filter(Showtime.id.in_(ids)).delete(synchronize_session=False)
+        db.commit()
+        return deleted

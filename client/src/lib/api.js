@@ -46,8 +46,13 @@ api.interceptors.request.use(
       // Add language preference if needed
       config.headers['Accept-Language'] = 'vi';
 
+      // Log outgoing request for debugging
+      console.log(`[API Request] ${config.method.toUpperCase()} ${config.url}`, config);
+
       return config;
     } catch (error) {
+      console.error('[API Request Error]', error);
+      throw error;
       console.error('Server connection error:', error);
       toast.error('Không thể kết nối đến server. Vui lòng thử lại sau.');
       return Promise.reject(error);
@@ -70,14 +75,16 @@ api.interceptors.response.use(
   (error) => {
     // Log error payload for easier debugging
     try {
-      console.error('API error:', {
+      const errorInfo = {
         url: error.config?.url,
         method: error.config?.method,
         status: error.response?.status,
         data: error.response?.data,
-      });
+        message: error.message,
+      };
+      console.error('[API Error]:', errorInfo);
     } catch (e) {
-      console.error('Failed to log API error', e);
+      console.error('[API Error Logger Failed]:', e);
     }
 
     // Skip toast if suppressed
@@ -85,68 +92,67 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
+    // Handle network errors
+    if (!error.response) {
+      toast.error('Network error. Please check your connection.');
+      return Promise.reject(error);
+    }
+
     // Handle common errors
     if (error.response) {
       const { status, data } = error.response;
+      const errorMessage = data?.message || data?.detail || 'An error occurred';
       
       switch (status) {
         case 400:
-          // Bad Request
-          toast.error(data?.message || data?.detail || 'Yêu cầu không hợp lệ.');
+          toast.error(`Invalid request: ${errorMessage}`);
           break;
 
         case 401:
           // Unauthorized - token expired or invalid
           localStorage.removeItem('token');
           if (window.location.pathname !== '/') {
-            toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+            toast.error('Session expired. Please login again.');
             window.location.href = '/';
           }
           break;
 
         case 403:
-          // Forbidden - user doesn't have required permissions
-          toast.error(data?.message || 'Bạn không có quyền thực hiện hành động này.');
+          toast.error(data?.message || 'Access denied. Insufficient permissions.');
           break;
 
         case 404:
-          // Not Found
-          toast.error(data?.message || 'Không tìm thấy dữ liệu yêu cầu.');
+          toast.error(data?.message || 'Resource not found.');
           break;
 
         case 409:
-          // Conflict
-          toast.error(data?.message || 'Dữ liệu đã tồn tại hoặc có xung đột.');
+          toast.error(data?.message || 'Data conflict or already exists.');
           break;
 
         case 422:
-          // Validation errors
+          // Handle validation errors
           if (data?.detail && Array.isArray(data.detail)) {
-            // Handle multiple validation errors
             data.detail.forEach(err => {
               const errorMsg = err.msg || err.message;
               if (errorMsg) toast.error(errorMsg);
             });
           } else {
-            toast.error(data?.message || data?.detail || 'Dữ liệu không hợp lệ.');
+            toast.error(data?.message || data?.detail || 'Invalid data.');
           }
           break;
 
         case 429:
-          // Too Many Requests
-          toast.error('Quá nhiều yêu cầu. Vui lòng thử lại sau.');
+          toast.error('Too many requests. Please try again later.');
           break;
 
         case 500:
         case 502:
         case 503:
-          // Server Errors
-          toast.error('Lỗi máy chủ. Vui lòng thử lại sau.');
+          toast.error('Server error. Please try again later.');
           break;
 
         default:
-          // Unknown error status
-          toast.error(data?.message || data?.detail || 'Đã xảy ra lỗi. Vui lòng thử lại.');
+          toast.error(`Error: ${errorMessage}`);
       }
     } else if (error.request) {
       // Network error - request made but no response received

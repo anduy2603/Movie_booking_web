@@ -1,7 +1,7 @@
 import api from '../lib/api';
 
-const getAllUsersRequest = async (page = 1, limit = 10) => {
-  return await api.get(`/users?page=${page}&limit=${limit}`);
+const getAllUsersRequest = async (page = 1, size = 10) => {
+  return await api.get('/users', { params: { page, size } });
 };
 
 const getUserByIdRequest = async (userId) => {
@@ -12,8 +12,9 @@ const updateUserRequest = async (userId, data) => {
   return await api.put(`/users/${userId}`, data);
 };
 
+// Note: Server does not expose PATCH /users/{id}/status; use PUT /users/{id}
 const updateUserStatusRequest = async (userId, data) => {
-  return await api.patch(`/users/${userId}/status`, data);
+  return await api.put(`/users/${userId}`, data);
 };
 
 const deleteUserRequest = async (userId) => {

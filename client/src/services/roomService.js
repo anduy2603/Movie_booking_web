@@ -30,6 +30,11 @@ export const deleteRoomRequest = (roomId) => {
   return api.delete(`/rooms/${roomId}`);
 };
 
+// Generate seats for a room (admin only)
+export const generateSeatsRequest = (roomId, overwrite = false) => {
+  return api.post(`/rooms/${roomId}/generate-seats`, null, { params: { overwrite } });
+};
+
 export default {
   getRoomsRequest,
   getRoomsByTheaterRequest,
@@ -37,4 +42,5 @@ export default {
   createRoomRequest,
   updateRoomRequest,
   deleteRoomRequest,
+  generateSeatsRequest,
 };

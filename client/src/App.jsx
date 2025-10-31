@@ -27,7 +27,7 @@ import AdminUserList from "./components/AdminUserList";
 const App = () => {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  // removed unused isAuthPage variable
 
   return(
     <ErrorBoundary>
@@ -42,6 +42,7 @@ const App = () => {
 
           {/* Protected User Routes */}
           <Route path="/movies/:id/:date" element={<ProtectedRoute><SeatLayout/></ProtectedRoute>} />
+          <Route path="/booking/:id" element={<ProtectedRoute><SeatLayout/></ProtectedRoute>} />
           <Route path="/my-bookings" element={<ProtectedRoute><MyBookings/></ProtectedRoute>} />
           <Route path="/favorites" element={<ProtectedRoute><Favorite/></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><UserProfile/></ProtectedRoute>} />

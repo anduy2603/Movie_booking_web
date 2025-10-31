@@ -37,32 +37,79 @@ class ShowtimeService(BaseService[Showtime, ShowtimeCreate, ShowtimeBase]):
 
     # -------------------- VALIDATION --------------------
     def validate_conflict(self, db: Session, room_id: int, start_time, end_time):
-        """Kiểm tra xem có trùng giờ chiếu trong cùng phòng không"""
-        def to_utc_aware(dt):
+        """Kiểm tra xem có trùng giờ chiếu trong cùng phòng không (so sánh trực tiếp theo DB)."""
+        # Chuẩn hóa về naive UTC-like lưu trong DB: nếu có tz thì chuyển sang UTC và bỏ tz; nếu không có tz thì giữ nguyên
+        def to_naive_utc(dt):
             if dt.tzinfo is None:
-                return dt.replace(tzinfo=timezone.utc)
-            return dt.astimezone(timezone.utc)
+                return dt
+            return dt.astimezone(timezone.utc).replace(tzinfo=None)
 
-        s_start_utc = to_utc_aware(start_time)
-        s_end_utc = to_utc_aware(end_time)
+        s_start = to_naive_utc(start_time)
+        s_end = to_naive_utc(end_time)
 
-        existing = self.repository.get_by_room(db, room_id)
-        for s in existing:
-            e_start_utc = to_utc_aware(s.start_time)
-            e_end_utc = to_utc_aware(s.end_time)
-            if not (s_end_utc <= e_start_utc or s_start_utc >= e_end_utc):
-                logger.warning(f"Conflict detected: Room {room_id} has overlap with showtime {s.id}")
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Showtime conflict with showtime id={s.id}"
-                )
+        conflict = (
+            db.query(Showtime)
+            .filter(
+                Showtime.room_id == room_id,
+                Showtime.start_time < s_end,
+                Showtime.end_time > s_start,
+            )
+            .first()
+        )
+        if conflict:
+            logger.warning(
+                f"Conflict detected: Room {room_id} overlaps with showtime id={conflict.id}"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Showtime conflict with showtime id={conflict.id}"
+            )
 
     # -------------------- CREATE OVERRIDE --------------------
     def create(self, db: Session, obj_in: ShowtimeCreate) -> Showtime:
-        # Normalize to UTC-aware for conflict check
-        self.validate_conflict(db, obj_in.room_id, obj_in.start_time, obj_in.end_time)
-        # Store as naive UTC for consistency with DB naive DateTime columns
+        # Normalize to naive for conflict check and storage
         start_naive_utc = (obj_in.start_time.astimezone(timezone.utc) if obj_in.start_time.tzinfo else obj_in.start_time).replace(tzinfo=None)
         end_naive_utc = (obj_in.end_time.astimezone(timezone.utc) if obj_in.end_time.tzinfo else obj_in.end_time).replace(tzinfo=None)
+        self.validate_conflict(db, obj_in.room_id, start_naive_utc, end_naive_utc)
         obj_in = obj_in.model_copy(update={"start_time": start_naive_utc, "end_time": end_naive_utc})
         return super().create(db, obj_in)
+
+    # -------------------- UPDATE OVERRIDE --------------------
+    def update(self, db: Session, obj_id: int, obj_in: ShowtimeBase) -> Showtime:
+        db_obj = db.query(Showtime).get(obj_id)
+        if not db_obj:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Showtime not found")
+        # Determine target values (support partial update)
+        new_room_id = obj_in.room_id if hasattr(obj_in, 'room_id') and obj_in.room_id is not None else db_obj.room_id
+        new_start = obj_in.start_time if hasattr(obj_in, 'start_time') and obj_in.start_time is not None else db_obj.start_time
+        new_end = obj_in.end_time if hasattr(obj_in, 'end_time') and obj_in.end_time is not None else db_obj.end_time
+        # Normalize to naive and validate conflict excluding itself
+        start_naive = (new_start.astimezone(timezone.utc) if getattr(new_start, 'tzinfo', None) else new_start).replace(tzinfo=None)
+        end_naive = (new_end.astimezone(timezone.utc) if getattr(new_end, 'tzinfo', None) else new_end).replace(tzinfo=None)
+        conflict = (
+            db.query(Showtime)
+            .filter(
+                Showtime.id != obj_id,
+                Showtime.room_id == new_room_id,
+                Showtime.start_time < end_naive,
+                Showtime.end_time > start_naive,
+            )
+            .first()
+        )
+        if conflict:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Showtime conflict with showtime id={conflict.id}")
+        # Apply updates
+        payload = obj_in.model_dump(exclude_unset=True)
+        if 'start_time' in payload:
+            payload['start_time'] = start_naive
+        if 'end_time' in payload:
+            payload['end_time'] = end_naive
+        for k, v in payload.items():
+            setattr(db_obj, k, v)
+        db.commit()
+        db.refresh(db_obj)
+        return db_obj
+
+    # -------------------- BULK DELETE --------------------
+    def delete_many(self, db: Session, ids: List[int]) -> int:
+        return self.repository.delete_many(db, ids)

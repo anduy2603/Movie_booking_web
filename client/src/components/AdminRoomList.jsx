@@ -8,7 +8,7 @@ const AdminRoomList = () => {
   const [theaters, setTheaters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({ name: '', theater_id: '', capacity: 0 });
+  const [formData, setFormData] = useState({ name: '', room_type: '', total_seats: 0, theater_id: '' });
   const [editId, setEditId] = useState(null);
 
   useEffect(() => {
@@ -22,8 +22,8 @@ const AdminRoomList = () => {
         roomService.getRoomsRequest(),
         theaterService.getTheatersRequest(),
       ]);
-      setRooms(roomsRes.data.items || []);
-      setTheaters(theatersRes.data.items || []);
+      setRooms(roomsRes.data?.data || roomsRes.data?.items || []);
+      setTheaters(theatersRes.data?.data || theatersRes.data?.items || []);
     } catch (err) {
       console.error(err);
       toast.error('Failed to load data');
@@ -44,7 +44,7 @@ const AdminRoomList = () => {
       }
       setIsModalOpen(false);
       setEditId(null);
-      setFormData({ name: '', theater_id: '', capacity: 0 });
+      setFormData({ name: '', room_type: '', total_seats: 0, theater_id: '' });
       fetchData();
     } catch (err) {
       console.error(err);
@@ -54,7 +54,7 @@ const AdminRoomList = () => {
 
   const handleEdit = (r) => {
     setEditId(r.id);
-    setFormData({ name: r.name || '', theater_id: r.theater_id || '', capacity: r.capacity || 0 });
+    setFormData({ name: r.name || '', room_type: r.room_type || '', total_seats: r.total_seats || 0, theater_id: r.theater_id || '' });
     setIsModalOpen(true);
   };
 
@@ -76,7 +76,7 @@ const AdminRoomList = () => {
     <div className="container mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold">Room Management</h1>
-        <button onClick={() => { setFormData({ name: '', theater_id: '', capacity: 0 }); setIsModalOpen(true); }} className="flex items-center px-4 py-2 bg-primary text-white rounded-lg">
+        <button onClick={() => { setFormData({ name: '', room_type: '', total_seats: 0, theater_id: '' }); setIsModalOpen(true); }} className="flex items-center px-4 py-2 bg-primary text-white rounded-lg">
           <Plus className="w-5 h-5 mr-2" /> Add Room
         </button>
       </div>
@@ -87,7 +87,8 @@ const AdminRoomList = () => {
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-300">Name</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-300">Theater</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300">Capacity</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300">Type</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300">Total Seats</th>
               <th className="px-6 py-3 text-center text-xs font-medium text-gray-300">Actions</th>
             </tr>
           </thead>
@@ -96,10 +97,24 @@ const AdminRoomList = () => {
               <tr key={r.id} className="hover:bg-gray-700/50">
                 <td className="px-6 py-4 text-sm text-gray-300">{r.name}</td>
                 <td className="px-6 py-4 text-sm text-gray-300">{theaters.find(t => t.id === r.theater_id)?.name || '—'}</td>
-                <td className="px-6 py-4 text-sm text-gray-300">{r.capacity}</td>
+                <td className="px-6 py-4 text-sm text-gray-300">{r.room_type}</td>
+                <td className="px-6 py-4 text-sm text-gray-300">{r.total_seats}</td>
                 <td className="px-6 py-4 text-center">
                   <button onClick={() => handleEdit(r)} className="text-blue-400 mx-2"><Edit2 className="w-5 h-5"/></button>
                   <button onClick={() => handleDelete(r.id)} className="text-red-400 mx-2"><Trash2 className="w-5 h-5"/></button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await roomService.generateSeatsRequest(r.id, true)
+                        toast.success('Seats generated')
+                      } catch (e) {
+                        toast.error('Failed to generate seats')
+                      }
+                    }}
+                    className="mx-2 px-2 py-1 text-xs rounded bg-green-600 text-white"
+                  >
+                    Generate seats
+                  </button>
                 </td>
               </tr>
             ))}
@@ -117,6 +132,10 @@ const AdminRoomList = () => {
                 <input value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full bg-gray-700 p-2 rounded" required />
               </div>
               <div>
+                <label className="block text-sm mb-1">Room Type</label>
+                <input value={formData.room_type} onChange={(e) => setFormData({...formData, room_type: e.target.value})} className="w-full bg-gray-700 p-2 rounded" required />
+              </div>
+              <div>
                 <label className="block text-sm mb-1">Theater</label>
                 <select value={formData.theater_id} onChange={(e) => setFormData({...formData, theater_id: e.target.value})} className="w-full bg-gray-700 p-2 rounded" required>
                   <option value="">Select theater</option>
@@ -124,8 +143,8 @@ const AdminRoomList = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm mb-1">Capacity</label>
-                <input type="number" value={formData.capacity} onChange={(e) => setFormData({...formData, capacity: Number(e.target.value)})} className="w-full bg-gray-700 p-2 rounded" required />
+                <label className="block text-sm mb-1">Total Seats</label>
+                <input type="number" value={formData.total_seats} onChange={(e) => setFormData({...formData, total_seats: Number(e.target.value)})} className="w-full bg-gray-700 p-2 rounded" required />
               </div>
               <div className="flex justify-end gap-4">
                 <button type="button" onClick={() => { setIsModalOpen(false); setEditId(null); }} className="px-4 py-2 bg-gray-700 rounded">Cancel</button>

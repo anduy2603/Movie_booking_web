@@ -15,13 +15,15 @@ def setup_cors_middleware(app: FastAPI):
         # "https://yourdomain.com",
     ]
     
-    # Trong development, cho phép tất cả origins
-    if settings.DEBUG:
-        allowed_origins = ["*"]
-    
+    # Luôn dùng danh sách origin cụ thể để đảm bảo header CORS xuất hiện cả với DELETE/4xx/5xx
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=allowed_origins,
+        allow_origins=[
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+        ],
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
         allow_headers=["*"],

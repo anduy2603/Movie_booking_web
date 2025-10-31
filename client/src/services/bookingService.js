@@ -39,6 +39,11 @@ export const createSingleBookingRequest = (bookingData) => {
   return createBookingRequest([bookingData]);
 };
 
+// Get bookings for a showtime (to mark occupied seats)
+export const getBookingsByShowtimeRequest = (showtimeId) => {
+  return api.get(`/bookings/showtime/${showtimeId}`);
+};
+
 export default {
   getBookingsRequest,
   getBookingByIdRequest,
@@ -47,4 +52,5 @@ export default {
   createSingleBookingRequest,
   cancelBookingRequest,
   deleteBookingRequest,
+  getBookingsByShowtimeRequest,
 };

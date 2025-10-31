@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { showtimeService, movieService, theaterService } from '../services';
+import { showtimeService, movieService, theaterService, roomService } from '../services';
 import { toast } from 'react-hot-toast';
 import { Edit2, Trash2, Plus } from 'lucide-react';
 
@@ -7,14 +7,17 @@ const AdminShowtimeList = () => {
   const [showtimes, setShowtimes] = useState([]);
   const [movies, setMovies] = useState([]);
   const [theaters, setTheaters] = useState([]);
+  const [rooms, setRooms] = useState([]);
+  const [allRooms, setAllRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     movie_id: '',
     theater_id: '',
+    room_id: '',
     start_time: '',
     end_time: '',
-    price: '',
+    base_price: '',
   });
   const [editId, setEditId] = useState(null);
 
@@ -25,18 +28,20 @@ const AdminShowtimeList = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [showtimesRes, moviesRes, theatersRes] = await Promise.all([
-        showtimeService.getShowtimesRequest(),
-        movieService.getMoviesRequest(),
-        theaterService.getTheatersRequest(),
+      const [showtimesRes, moviesRes, theatersRes, roomsRes] = await Promise.all([
+        showtimeService.getShowtimesRequest(1, 100),
+        movieService.getMoviesRequest(1, 100),
+        theaterService.getTheatersRequest(1, 100),
+        roomService.getRoomsRequest(1, 100),
       ]);
 
-      setShowtimes(showtimesRes.data.items || []);
-      setMovies(moviesRes.data.items || []);
-      setTheaters(theatersRes.data.items || []);
-    } catch (error) {
+      setShowtimes(showtimesRes.data?.data || showtimesRes.data?.items || []);
+      setMovies(moviesRes.data?.data || moviesRes.data?.items || []);
+      setTheaters(theatersRes.data?.data || theatersRes.data?.items || []);
+      setAllRooms(roomsRes.data?.data || roomsRes.data?.items || []);
+    } catch {
       toast.error('Failed to load data');
-      console.error('Error fetching data:', error);
+      // silent log
     } finally {
       setLoading(false);
     }
@@ -45,31 +50,72 @@ const AdminShowtimeList = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Client-side overlap check: same room cannot overlap time ranges
+      const allSt = await showtimeService.getShowtimesRequest(1, 100);
+      const sameRoom = (allSt.data?.data || []).filter(s => String(s.room_id) === String(formData.room_id));
+      const sStart = new Date(formData.start_time);
+      const sEnd = new Date(formData.end_time);
+      const overlapped = sameRoom.some(s => {
+        const eStart = new Date(s.start_time);
+        const eEnd = new Date(s.end_time);
+        return !(sEnd <= eStart || sStart >= eEnd);
+      });
+      if (overlapped) {
+        toast.error('Time conflict: another showtime exists in this room for the selected range');
+        return;
+      }
+      const payload = {
+        movie_id: Number(formData.movie_id),
+        room_id: Number(formData.room_id),
+        start_time: formData.start_time,
+        end_time: formData.end_time,
+        base_price: Number(formData.base_price),
+      };
       if (editId) {
-        await showtimeService.updateShowtimeRequest(editId, formData);
+        await showtimeService.updateShowtimeRequest(editId, payload);
         toast.success('Showtime updated successfully');
       } else {
-        await showtimeService.createShowtimeRequest(formData);
+        await showtimeService.createShowtimeRequest(payload);
         toast.success('Showtime created successfully');
       }
       setIsModalOpen(false);
       setEditId(null);
       resetForm();
       fetchData();
-    } catch (error) {
+    } catch {
       toast.error('Failed to save showtime');
     }
   };
 
-  const handleEdit = (showtime) => {
+  const handleEdit = async (showtime) => {
     setEditId(showtime.id);
-    setFormData({
-      movie_id: showtime.movie_id,
-      theater_id: showtime.theater_id,
-      start_time: new Date(showtime.start_time).toISOString().slice(0, 16),
-      end_time: new Date(showtime.end_time).toISOString().slice(0, 16),
-      price: showtime.price,
-    });
+    try {
+      let theaterId = '';
+      // fetch room to get theater id
+      const room = await roomService.getRoomByIdRequest(showtime.room_id);
+      theaterId = room?.data?.theater_id || '';
+      if (theaterId) {
+        const r = await roomService.getRoomsByTheaterRequest(theaterId, 1, 100);
+        setRooms(r.data?.data || []);
+      }
+      setFormData({
+        movie_id: showtime.movie_id,
+        theater_id: theaterId,
+        room_id: showtime.room_id,
+        start_time: new Date(showtime.start_time).toISOString().slice(0, 16),
+        end_time: new Date(showtime.end_time).toISOString().slice(0, 16),
+        base_price: showtime.base_price,
+      });
+    } catch {
+      setFormData({
+        movie_id: showtime.movie_id,
+        theater_id: '',
+        room_id: showtime.room_id,
+        start_time: new Date(showtime.start_time).toISOString().slice(0, 16),
+        end_time: new Date(showtime.end_time).toISOString().slice(0, 16),
+        base_price: showtime.base_price,
+      });
+    }
     setIsModalOpen(true);
   };
 
@@ -79,7 +125,7 @@ const AdminShowtimeList = () => {
         await showtimeService.deleteShowtimeRequest(id);
         toast.success('Showtime deleted successfully');
         fetchData();
-      } catch (error) {
+      } catch {
         toast.error('Failed to delete showtime');
       }
     }
@@ -89,10 +135,12 @@ const AdminShowtimeList = () => {
     setFormData({
       movie_id: '',
       theater_id: '',
+      room_id: '',
       start_time: '',
       end_time: '',
-      price: '',
+      base_price: '',
     });
+    setRooms([])
   };
 
   if (loading) {
@@ -124,7 +172,7 @@ const AdminShowtimeList = () => {
           <thead className="bg-gray-700">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Movie</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Theater</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Room</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Start Time</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">End Time</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Price</th>
@@ -138,7 +186,7 @@ const AdminShowtimeList = () => {
                   {movies.find(m => m.id === showtime.movie_id)?.title}
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-300">
-                  {theaters.find(t => t.id === showtime.theater_id)?.name}
+                  {allRooms.find(r => r.id === showtime.room_id)?.name || `Room #${showtime.room_id}`}
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-300">
                   {new Date(showtime.start_time).toLocaleString()}
@@ -147,7 +195,7 @@ const AdminShowtimeList = () => {
                   {new Date(showtime.end_time).toLocaleString()}
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-300">
-                  ${showtime.price}
+                  ${showtime.base_price}
                 </td>
                 <td className="px-6 py-4 text-sm font-medium text-center">
                   <button
@@ -198,7 +246,20 @@ const AdminShowtimeList = () => {
                   <label className="block text-sm font-medium mb-1">Theater</label>
                   <select
                     value={formData.theater_id}
-                    onChange={(e) => setFormData({ ...formData, theater_id: e.target.value })}
+                    onChange={async (e) => {
+                      const val = e.target.value
+                      setFormData({ ...formData, theater_id: val, room_id: '' })
+                      if (val) {
+                        try {
+                          const r = await roomService.getRoomsByTheaterRequest(val, 1, 100)
+                          setRooms(r.data?.data || [])
+                        } catch {
+                          setRooms([])
+                        }
+                      } else {
+                        setRooms([])
+                      }
+                    }}
                     className="w-full bg-gray-700 rounded-lg p-2"
                     required
                   >
@@ -206,6 +267,22 @@ const AdminShowtimeList = () => {
                     {theaters.map((theater) => (
                       <option key={theater.id} value={theater.id}>
                         {theater.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Room</label>
+                  <select
+                    value={formData.room_id}
+                    onChange={(e) => setFormData({ ...formData, room_id: e.target.value })}
+                    className="w-full bg-gray-700 rounded-lg p-2"
+                    required
+                  >
+                    <option value="">Select Room</option>
+                    {rooms.map((room) => (
+                      <option key={room.id} value={room.id}>
+                        {room.name}
                       </option>
                     ))}
                   </select>
@@ -231,11 +308,11 @@ const AdminShowtimeList = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Price</label>
+                  <label className="block text-sm font-medium mb-1">Base Price</label>
                   <input
                     type="number"
-                    value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                    value={formData.base_price}
+                    onChange={(e) => setFormData({ ...formData, base_price: e.target.value })}
                     className="w-full bg-gray-700 rounded-lg p-2"
                     required
                     min="0"
