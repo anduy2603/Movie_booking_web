@@ -32,7 +32,7 @@ const Movies = () => {
   const fetchMovies = async () => {
     try {
       setLoading(true);
-      console.log('Fetching movies...');
+      console.log('Fetching movies...', { searchQuery, page });
       const response = searchQuery
         ? await movieService.searchMoviesRequest(searchQuery, page)
         : await movieService.getMoviesRequest(page);
@@ -54,16 +54,20 @@ const Movies = () => {
         response: error.response?.data,
         status: error.response?.status
       });
+      // Set empty arrays to prevent stuck loading
+      setMovies([]);
+      setAllMovies([]);
+      setTotalPages(1);
       toast.error(error.response?.data?.detail || 'Failed to load movies');
     } finally {
       setLoading(false);
     }
   };
 
+  // Fetch movies when page or searchQuery changes
   useEffect(() => {
-    if (!searchQuery && !filters.genre) {
-      fetchMovies();
-    }
+    fetchMovies();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, searchQuery]);
 
   // Client-side filtering by genre
@@ -77,24 +81,25 @@ const Movies = () => {
     );
   }, [allMovies, filters.genre]);
 
-  // Apply genre filter to displayed movies
+  // Apply genre filter to displayed movies (only client-side, don't refetch)
   useEffect(() => {
-    if (filters.genre) {
+    if (filters.genre && allMovies.length > 0) {
       setMovies(filteredMovies);
-      setPage(1); // Reset page when filtering
-    } else if (allMovies.length > 0 && !searchQuery) {
-      // Show all movies if no filter and have loaded movies
+      setPage(1); // Reset to page 1 when filtering
+    } else if (!filters.genre && allMovies.length > 0) {
+      // If no filter, show all loaded movies
       setMovies(allMovies);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.genre]);
 
   const handleSearch = (e) => {
     e.preventDefault();
     setPage(1);
-    fetchMovies();
+    // searchQuery will trigger useEffect to fetch
   };
 
-  if (loading) return <Loading />;
+  if (loading && movies.length === 0) return <Loading />;
 
   return (
     <div className='relative my-40 mb-60 px-6 md:px-16 lg:px-40 xl:px-44 overflow-hidden min-h-[80vh]'>

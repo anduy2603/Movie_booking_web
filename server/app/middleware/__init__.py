@@ -87,17 +87,18 @@ def setup_development_middleware(app: FastAPI):
     # Request validation (ít nghiêm ngặt hơn)
     app.add_middleware(RequestValidationMiddleware)
     
-    # Rate limiting nhẹ (dùng giá trị từ settings để có thể tùy biến)
+    # Rate limiting rất nhẹ cho development (hoặc disable bằng cách set rất cao)
+    # Development mode: 10000 requests per minute (hầu như không giới hạn)
     app.add_middleware(
         RateLimitMiddleware,
-        calls=settings.RATE_LIMIT_CALLS or 1000,
-        period=settings.RATE_LIMIT_PERIOD or 60,
+        calls=10000,  # Rất cao để không bị block trong development
+        period=60,
     )
     
     app.add_middleware(
         AuthRateLimitMiddleware,
-        calls=settings.AUTH_RATE_LIMIT_CALLS or 1000,
-        period=settings.AUTH_RATE_LIMIT_PERIOD or 60,
+        calls=1000,  # Cho phép nhiều auth attempts trong development
+        period=60,
     )
     
     # Logging chi tiết

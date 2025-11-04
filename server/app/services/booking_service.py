@@ -31,11 +31,25 @@ class BookingService(BaseService[Booking, BookingCreate, BookingUpdate]):
         return booking
 
     def cancel_booking(self, db: Session, booking_id: int) -> BookingRead:
-        """Hủy đặt vé"""
+        """Hủy đặt vé và update payment status nếu có"""
         booking = self.repository.get_by_id(db, booking_id)
         if not booking:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking not found")
+        
         booking.status = "cancelled"
+        
+        # Update payment status to cancelled if payment exists
+        if booking.payment_id:
+            try:
+                from app.services.payment_service import PaymentService
+                payment_service = PaymentService()
+                payment = payment_service.get_by_id(db, booking.payment_id)
+                if payment and payment.status not in ["cancelled", "failed"]:
+                    payment_service.update_payment_status(db, booking.payment_id, "cancelled")
+                    logger.info(f"Payment {booking.payment_id} status updated to cancelled")
+            except Exception as e:
+                logger.warning(f"Failed to update payment status: {e}")
+        
         db.commit()
         db.refresh(booking)
         logger.info(f"Booking id={booking_id} cancelled successfully")
@@ -56,10 +70,44 @@ class BookingService(BaseService[Booking, BookingCreate, BookingUpdate]):
         return items, total
 
     def delete_booking(self, db: Session, booking_id: int) -> BookingRead:
-        booking = self.repository.delete(db, booking_id)
+        """Xóa booking và update payment nếu cần"""
+        booking = self.repository.get_by_id(db, booking_id)
         if not booking:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking not found")
-        return booking
+        
+        payment_id = booking.payment_id  # Lưu payment_id trước khi delete
+        
+        # Check if payment has other bookings before deleting
+        has_other_bookings = False
+        if payment_id:
+            try:
+                from app.models.booking import Booking
+                other_bookings_count = db.query(Booking).filter(
+                    Booking.payment_id == payment_id,
+                    Booking.id != booking_id
+                ).count()
+                has_other_bookings = other_bookings_count > 0
+            except Exception as e:
+                logger.warning(f"Failed to check other bookings: {e}")
+        
+        # Delete booking (payment_id trong booking sẽ tự động SET NULL nhờ foreign key constraint)
+        deleted_booking = self.repository.delete(db, booking_id)
+        
+        # Update payment status if no other bookings exist
+        if payment_id and not has_other_bookings:
+            try:
+                from app.services.payment_service import PaymentService
+                payment_service = PaymentService()
+                payment = payment_service.get_by_id(db, payment_id)
+                if payment and payment.status not in ["cancelled", "failed"]:
+                    payment_service.update_payment_status(db, payment_id, "cancelled")
+                    logger.info(f"Payment {payment_id} status updated to cancelled after booking deletion")
+            except Exception as e:
+                logger.warning(f"Failed to update payment status after booking deletion: {e}")
+        
+        if not deleted_booking:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking not found")
+        return deleted_booking
 
     def get_bookings_by_showtime(self, db: Session, showtime_id: int):
         """Return all bookings for a given showtime (used to determine occupied seats)."""

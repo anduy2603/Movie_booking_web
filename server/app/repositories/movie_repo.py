@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from app.models.movie import Movie
 from app.repositories.base_repo import BaseRepository
 from app.schemas.movie_schema import MovieCreate, MovieBase
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 
 class MovieRepository(BaseRepository[Movie, MovieCreate, MovieBase]):
     def __init__(self):
@@ -35,3 +35,38 @@ class MovieRepository(BaseRepository[Movie, MovieCreate, MovieBase]):
         Đếm tổng số movie trong database.
         """
         return db.query(Movie).count()
+
+    def search_movies(self, db: Session, query: str, skip: int = 0, limit: int = 10) -> Tuple[List[Movie], int]:
+        """
+        Tìm kiếm phim theo title, description, hoặc genre.
+        """
+        search_term = f"%{query.lower()}%"
+        state = (
+            select(Movie)
+            .where(
+                or_(
+                    func.lower(Movie.title).like(search_term),
+                    func.lower(Movie.description).like(search_term),
+                    func.lower(Movie.genre).like(search_term)
+                )
+            )
+            .offset(skip)
+            .limit(limit)
+        )
+        movies = db.scalars(state).all()
+        
+        # Count total matching movies
+        count_state = (
+            select(func.count())
+            .select_from(Movie)
+            .where(
+                or_(
+                    func.lower(Movie.title).like(search_term),
+                    func.lower(Movie.description).like(search_term),
+                    func.lower(Movie.genre).like(search_term)
+                )
+            )
+        )
+        total = db.scalar(count_state) or 0
+        
+        return movies, total

@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { bookingService, seatService, showtimeService } from '../services'
+import { bookingService, seatService, showtimeService, paymentService } from '../services'
 import { useAuth } from '../hooks/useAuth'
 import { toast } from 'react-hot-toast'
 import { RefreshCw, Clock, DollarSign } from 'lucide-react'
+import PaymentModal from '../components/PaymentModal'
 
 const SeatLayout = () => {
   const { id: routeId, date } = useParams()
@@ -18,6 +19,7 @@ const SeatLayout = () => {
   const [seats, setSeats] = useState([])
   const [bookedSeatIds, setBookedSeatIds] = useState(new Set())
   const [selectedSeatIds, setSelectedSeatIds] = useState(new Set())
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
 
   // Step handling is derived: when showtime is null -> choose showtime; else choose seats
 
@@ -136,37 +138,101 @@ const SeatLayout = () => {
     return Math.round(sum * 100) / 100
   }, [selectedSeatIds, seats, showtime, computeSeatPrice])
 
-  const confirmBooking = async () => {
+  const handlePaymentConfirm = async (paymentMethod, totalAmount) => {
+    let paymentId = null;
+    
     try {
       if (!user) {
         toast.error('Please login to book tickets')
-        return
+        throw new Error('User not logged in')
       }
       if (selectedSeatIds.size === 0) {
         toast.error('Please select at least one seat')
-        return
+        throw new Error('No seats selected')
       }
 
+      // Try to create payment (optional - nếu fail thì vẫn tạo booking)
+      try {
+        const paymentData = {
+          method: paymentMethod,
+          amount: totalAmount,
+          status: paymentMethod === 'cash' ? 'pending' : 'success',
+          created_by: user.id,
+        };
+        
+        console.log('Creating payment:', paymentData);
+        const paymentResponse = await paymentService.createPaymentRequest(paymentData);
+        paymentId = paymentResponse.data?.id;
+        console.log('Payment created successfully:', paymentId);
+      } catch (paymentError) {
+        console.warn('Payment creation failed, continuing without payment:', paymentError);
+        // Payment optional - vẫn tiếp tục tạo booking
+        paymentId = null;
+        toast('Payment creation failed, but booking will still be created', { icon: '⚠️' });
+      }
+
+      // Create bookings (với hoặc không có payment_id)
       const payload = []
       for (const seat of seats) {
         if (selectedSeatIds.has(seat.id)) {
-          payload.push({
+          const bookingData = {
             user_id: user.id,
             showtime_id: Number(showtime.id),
             seat_id: seat.id,
             price: computeSeatPrice(seat),
             status: 'pending',
-          })
+          };
+          
+          // Chỉ thêm payment_id nếu payment đã được tạo thành công
+          if (paymentId) {
+            bookingData.payment_id = paymentId;
+          }
+          
+          payload.push(bookingData);
         }
       }
 
-      await bookingService.createBookingRequest(payload)
+      console.log('Creating bookings:', payload);
+      const bookingResponse = await bookingService.createBookingRequest(payload);
+      console.log('Bookings created successfully:', bookingResponse);
+      
       toast.success('Booking created successfully')
       navigate('/my-bookings')
     } catch (error) {
-      console.error('Booking failed:', error)
-      toast.error(error?.response?.data?.detail || 'Booking failed')
+      console.error('Booking process failed:', error)
+      console.error('Error details:', {
+        message: error?.message,
+        response: error?.response?.data,
+        status: error?.response?.status,
+        stack: error?.stack
+      });
+      
+      // If payment was created but booking failed, try to cancel payment
+      if (paymentId) {
+        try {
+          await paymentService.updatePaymentStatusRequest(paymentId, 'cancelled')
+          console.log('Payment cancelled due to booking failure')
+        } catch (cancelError) {
+          console.error('Failed to cancel payment:', cancelError)
+        }
+      }
+      
+      const errorMessage = error?.response?.data?.detail || error?.response?.data?.message || error?.message || 'Booking failed'
+      toast.error(errorMessage)
+      throw error // Re-throw để PaymentModal biết có lỗi
     }
+  }
+
+  const confirmBooking = () => {
+    if (!user) {
+      toast.error('Please login to book tickets')
+      return
+    }
+    if (selectedSeatIds.size === 0) {
+      toast.error('Please select at least one seat')
+      return
+    }
+    setShowPaymentModal(true)
   }
 
   if (loading) {
@@ -329,6 +395,14 @@ const SeatLayout = () => {
           </div>
         </>
       )}
+
+      {/* Payment Modal */}
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        totalAmount={totalPrice}
+        onConfirm={handlePaymentConfirm}
+      />
     </div>
   )
 }

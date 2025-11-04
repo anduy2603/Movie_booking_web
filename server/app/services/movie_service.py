@@ -46,3 +46,13 @@ class MovieService(BaseService[Movie, MovieCreate, MovieBase]):
         if not movie:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Movie not found")
         return movie
+
+    def search_movies(self, db: Session, query: str, page: int = 1, size: int = 10) -> Tuple[List[MovieRead], int]:
+        """
+        Tìm kiếm phim theo query string.
+        """
+        skip = (page - 1) * size
+        movies, total = self.repository.search_movies(db, query, skip=skip, limit=size)
+        for movie in movies:
+            movie.liked_by_count = len(movie.liked_by) if hasattr(movie, "liked_by") else 0
+        return movies, total

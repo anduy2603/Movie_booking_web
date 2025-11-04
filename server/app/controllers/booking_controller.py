@@ -75,15 +75,40 @@ def create_booking(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    """Tạo booking(s) - user chỉ có thể tạo booking cho chính mình"""
+    from app.config.logger import logger
+    
     # Đảm bảo user chỉ có thể tạo booking cho chính mình
     for booking_data in booking_in:
         if booking_data.user_id != current_user.id:
             raise HTTPException(status_code=403, detail="Forbidden: You can only create bookings for yourself")
     
     created_bookings = []
-    for booking_data in booking_in:
-        booking = booking_service.create_booking(db, booking_data)
-        created_bookings.append(booking)
+    errors = []
+    
+    for idx, booking_data in enumerate(booking_in):
+        try:
+            logger.info(f"Creating booking {idx+1}/{len(booking_in)}: seat={booking_data.seat_id}, showtime={booking_data.showtime_id}, payment_id={booking_data.payment_id}")
+            booking = booking_service.create_booking(db, booking_data)
+            created_bookings.append(booking)
+            logger.info(f"Booking {idx+1} created successfully: id={booking.id}")
+        except HTTPException as e:
+            logger.error(f"Failed to create booking {idx+1}: {e.detail}")
+            errors.append(f"Booking {idx+1}: {e.detail}")
+            # Continue with other bookings
+        except Exception as e:
+            logger.error(f"Unexpected error creating booking {idx+1}: {str(e)}", exc_info=True)
+            errors.append(f"Booking {idx+1}: {str(e)}")
+    
+    # Nếu có lỗi và không có booking nào được tạo, throw error
+    if not created_bookings and errors:
+        error_msg = "; ".join(errors)
+        raise HTTPException(status_code=400, detail=f"Failed to create bookings: {error_msg}")
+    
+    # Nếu có một số booking thành công và một số fail, return successful ones
+    if errors:
+        logger.warning(f"Some bookings failed: {errors}")
+    
     return created_bookings
 
 # -------------------- CANCEL BOOKING --------------------

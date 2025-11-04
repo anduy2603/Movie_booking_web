@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from app.config.settings import settings
-from app.controllers import movie_controller, user_controller, booking_controller, room_controller, seat_controller, showtime_controller, theater_controller, favorite_controller, auth_controller
+from app.controllers import movie_controller, user_controller, booking_controller, room_controller, seat_controller, showtime_controller, theater_controller, favorite_controller, auth_controller, payment_controller
 from app.config.error_handler import register_exception_handlers
 from app.middleware import setup_middleware, setup_development_middleware
 
@@ -30,6 +30,7 @@ def create_app():
     app.include_router(theater_controller.router)
     app.include_router(favorite_controller.router)
     app.include_router(auth_controller.router)
+    app.include_router(payment_controller.router)
     
     # Register error handler
     register_exception_handlers(app)

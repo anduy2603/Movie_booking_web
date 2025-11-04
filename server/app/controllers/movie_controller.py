@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, status, Query
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 
 from app.schemas.movie_schema import MovieCreate, MovieRead, MovieBase
 from app.schemas.base_schema import PaginatedResponse
@@ -17,10 +17,15 @@ def get_all_movies(
     db: Session = Depends(get_db), 
     page: int = Query(1, ge=1, description="Current page number"),
     size: int = Query(10, ge=1, le=100, description="Number of items per page"),
+    search: Optional[str] = Query(None, description="Search query for title, description, or genre"),
     ):
     
-    # Lấy danh sách movie theo phân trang
-    movies, total = movie_service.get_movies_paginated(db, page=page, size=size)
+    # Nếu có search query, tìm kiếm; nếu không, lấy danh sách bình thường
+    if search:
+        movies, total = movie_service.search_movies(db, search, page=page, size=size)
+    else:
+        movies, total = movie_service.get_movies_paginated(db, page=page, size=size)
+    
     return PaginatedResponse[MovieRead](
         data=movies,
         total=total,

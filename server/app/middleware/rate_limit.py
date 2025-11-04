@@ -18,6 +18,14 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         # Lấy IP của client
         client_ip = request.client.host if request.client else "unknown"
         
+        # Bypass rate limiting cho localhost trong development
+        from app.config.settings import settings
+        if settings.DEBUG or settings.ENVIRONMENT == "development":
+            if client_ip in ["127.0.0.1", "localhost", "::1"] or client_ip.startswith("127."):
+                # Trong development, bypass rate limiting cho localhost
+                response = await call_next(request)
+                return response
+        
         # Lấy thời gian hiện tại
         current_time = time.time()
         
@@ -100,6 +108,15 @@ class AuthRateLimitMiddleware(BaseHTTPMiddleware):
             return Response(status_code=200, headers=headers)
         
         client_ip = request.client.host if request.client else "unknown"
+        
+        # Bypass rate limiting cho localhost trong development
+        from app.config.settings import settings
+        if settings.DEBUG or settings.ENVIRONMENT == "development":
+            if client_ip in ["127.0.0.1", "localhost", "::1"] or client_ip.startswith("127."):
+                # Trong development, bypass rate limiting cho localhost
+                response = await call_next(request)
+                return response
+        
         current_time = time.time()
         
         # Làm sạch các request cũ

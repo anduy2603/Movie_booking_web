@@ -35,7 +35,13 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         try:
             # Use model_dump(exclude_unset=False) to include all fields, even with defaults
             data_dict = data.model_dump(exclude_unset=False)
-            obj = self.model(**data_dict)
+            logger.debug(f"[{self.model_name}Repository] Data dict: {data_dict}")
+            
+            # Remove fields that are not in the model (e.g., computed fields)
+            model_columns = {c.name for c in self.model.__table__.columns}
+            filtered_dict = {k: v for k, v in data_dict.items() if k in model_columns}
+            
+            obj = self.model(**filtered_dict)
             db.add(obj)
             db.commit()
             db.refresh(obj)
@@ -43,7 +49,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             return obj
         except Exception as e:
             db.rollback()
-            logger.error(f"[{self.model_name}Repository] Error creating record: {e}")
+            logger.error(f"[{self.model_name}Repository] Error creating record: {e}", exc_info=True)
             raise
 
     def update(self, db: Session, obj: ModelType, data: UpdateSchemaType) -> ModelType:
