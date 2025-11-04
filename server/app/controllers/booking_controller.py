@@ -33,7 +33,7 @@ def list_bookings(
 @router.get("/{booking_id}", response_model=BookingRead)
 def get_booking_by_id(
     booking_id: int, 
-    current_user: User = Depends(get_current_user()),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     booking = booking_service.get_booking_by_id(db, booking_id)
@@ -50,7 +50,7 @@ def get_booking_by_id(
 @router.get("/user/{user_id}", response_model=PaginatedResponse[BookingRead])
 def get_user_bookings(
     user_id: int,
-    current_user: User = Depends(get_current_user()),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     page: int = Query(1, ge=1),
     size: int = Query(10, ge=1, le=100),
@@ -72,7 +72,7 @@ def get_user_bookings(
 @router.post("/", response_model=List[BookingRead], status_code=status.HTTP_201_CREATED)
 def create_booking(
     booking_in: List[BookingCreate], 
-    current_user: User = Depends(get_current_user()),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     # Đảm bảo user chỉ có thể tạo booking cho chính mình
@@ -90,7 +90,7 @@ def create_booking(
 @router.put("/{booking_id}/cancel", response_model=BookingRead)
 def cancel_booking(
     booking_id: int, 
-    current_user: User = Depends(get_current_user()),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     booking = booking_service.get_booking_by_id(db, booking_id)
@@ -107,7 +107,7 @@ def cancel_booking(
 @router.delete("/{booking_id}", response_model=BookingRead)
 def delete_booking(
     booking_id: int, 
-    current_user: User = Depends(get_current_user()),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     booking = booking_service.get_booking_by_id(db, booking_id)

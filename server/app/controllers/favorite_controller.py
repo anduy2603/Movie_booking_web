@@ -16,7 +16,7 @@ favorite_service = FavoriteService(FavoriteRepository())
 @router.get("/user/{user_id}", response_model=List[MovieRead])
 def get_user_favorites(
     user_id: int, 
-    current_user: User = Depends(get_current_user()),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Lấy danh sách phim yêu thích của user"""
@@ -29,7 +29,7 @@ def get_user_favorites(
 @router.post("/toggle")
 def toggle_favorite(
     favorite: FavoriteCreate, 
-    current_user: User = Depends(get_current_user()),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Thêm hoặc xóa phim khỏi danh sách yêu thích"""

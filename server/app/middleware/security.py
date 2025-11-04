@@ -8,10 +8,30 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         try:
             response = await call_next(request)
-        except Exception:
+        except Exception as e:
             # Nếu có exception trong downstream, đảm bảo vẫn trả response
             # với header CORS/security cơ bản để browser không block preflight
-            response = Response(content="Internal Server Error", status_code=500)
+            origin = request.headers.get("origin")
+            if not origin:
+                allowed_origins = [
+                    "http://localhost:5173",
+                    "http://127.0.0.1:5173",
+                    "http://localhost:3000",
+                    "http://127.0.0.1:3000",
+                ]
+                origin = allowed_origins[0] if allowed_origins else "*"
+            
+            cors_headers = {
+                "Access-Control-Allow-Origin": origin,
+                "Access-Control-Allow-Credentials": "true",
+                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
+                "Access-Control-Allow-Headers": "Authorization, Content-Type, X-Requested-With",
+            }
+            response = Response(
+                content="Internal Server Error", 
+                status_code=500,
+                headers=cors_headers
+            )
         
         # Security headers
         security_headers = {

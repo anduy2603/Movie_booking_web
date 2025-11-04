@@ -7,13 +7,13 @@ import { useNavigate, useParams } from 'react-router-dom';
 const AdminMovieForm = () => {
   const [movieData, setMovieData] = useState({
     title: '',
-    overview: '',
+    description: '',
     release_date: '',
-    runtime: '',
-    poster_path: '',
-    backdrop_path: '',
-    genres: [],
-    vote_average: ''
+    duration: '',
+    poster_url: '',
+    trailer_url: '',
+    genre: '',
+    language: ''
   });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -24,7 +24,18 @@ const AdminMovieForm = () => {
       setLoading(true);
       movieService.getMovieByIdRequest(movieId)
         .then(res => {
-          setMovieData(res.data);
+          const movie = res.data;
+          // Map backend fields to frontend state
+          setMovieData({
+            title: movie.title || '',
+            description: movie.description || '',
+            release_date: movie.release_date || '',
+            duration: movie.duration?.toString() || '',
+            poster_url: movie.poster_url || '',
+            trailer_url: movie.trailer_url || '',
+            genre: movie.genre || '',
+            language: movie.language || ''
+          });
         })
         .catch(() => {
           toast.error('Failed to load movie');
@@ -37,12 +48,20 @@ const AdminMovieForm = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      // Format data before sending
+      // Format data before sending - map frontend fields to backend schema
+      const durationValue = movieData.duration && movieData.duration !== '' 
+        ? parseInt(movieData.duration) 
+        : null;
+      
       const formattedData = {
-        ...movieData,
-        runtime: parseInt(movieData.runtime) || 0,
-        vote_average: parseFloat(movieData.vote_average) || 0,
-        genres: Array.isArray(movieData.genres) ? movieData.genres : [],
+        title: movieData.title,
+        description: movieData.description?.trim() || null,
+        release_date: movieData.release_date || null,
+        duration: durationValue && durationValue > 0 ? durationValue : null,
+        poster_url: movieData.poster_url?.trim() || null,
+        trailer_url: movieData.trailer_url?.trim() || null,
+        genre: movieData.genre?.trim() || null,
+        language: movieData.language?.trim() || null,
       };
 
       console.log('Submitting movie data:', formattedData);
@@ -57,13 +76,13 @@ const AdminMovieForm = () => {
         toast.success('Movie added successfully');
         setMovieData({
           title: '',
-          overview: '',
+          description: '',
           release_date: '',
-          runtime: 0,
-          poster_path: '',
-          backdrop_path: '',
-          genres: [],
-          vote_average: 0
+          duration: '',
+          poster_url: '',
+          trailer_url: '',
+          genre: '',
+          language: ''
         });
       }
       navigate('/admin/movies');
@@ -93,13 +112,12 @@ const AdminMovieForm = () => {
       </div>
 
       <div className="space-y-2">
-        <label className="block">Overview</label>
+        <label className="block">Description</label>
         <textarea
-          value={movieData.overview}
-          onChange={(e) => setMovieData({...movieData, overview: e.target.value})}
+          value={movieData.description}
+          onChange={(e) => setMovieData({...movieData, description: e.target.value})}
           className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700"
           rows="4"
-          required
         />
       </div>
 
@@ -116,13 +134,13 @@ const AdminMovieForm = () => {
         </div>
 
         <div className="space-y-2">
-          <label className="block">Runtime (minutes)</label>
+          <label className="block">Duration (minutes)</label>
           <input
             type="number"
-            value={movieData.runtime}
-            onChange={(e) => setMovieData({...movieData, runtime: parseInt(e.target.value)})}
+            value={movieData.duration}
+            onChange={(e) => setMovieData({...movieData, duration: e.target.value})}
             className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700"
-            required
+            min="0"
           />
         </div>
       </div>
@@ -131,57 +149,50 @@ const AdminMovieForm = () => {
         <label className="block">Poster URL</label>
         <input
           type="url"
-          value={movieData.poster_path}
-          onChange={(e) => setMovieData({...movieData, poster_path: e.target.value})}
+          value={movieData.poster_url}
+          onChange={(e) => setMovieData({...movieData, poster_url: e.target.value})}
           className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700"
-          required
         />
       </div>
 
       <div className="space-y-2">
-        <label className="block">Backdrop URL</label>
+        <label className="block">Trailer URL</label>
         <input
           type="url"
-          value={movieData.backdrop_path}
-          onChange={(e) => setMovieData({...movieData, backdrop_path: e.target.value})}
+          value={movieData.trailer_url}
+          onChange={(e) => setMovieData({...movieData, trailer_url: e.target.value})}
           className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700"
-          required
         />
       </div>
 
       <div className="space-y-2">
-        <label className="block">Genres (comma separated)</label>
+        <label className="block">Genre</label>
         <input
           type="text"
-          value={movieData.genres.map(g => g.name).join(',')}
-          onChange={(e) => setMovieData({
-            ...movieData, 
-            genres: e.target.value.split(',').map(name => ({ name: name.trim() })).filter(g => g.name)
-          })}
+          value={movieData.genre}
+          onChange={(e) => setMovieData({...movieData, genre: e.target.value})}
           className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700"
           placeholder="Action, Drama, Comedy"
         />
       </div>
 
       <div className="space-y-2">
-        <label className="block">Rating (0-10)</label>
+        <label className="block">Language</label>
         <input
-          type="number"
-          min="0"
-          max="10"
-          step="0.1"
-          value={movieData.vote_average}
-          onChange={(e) => setMovieData({...movieData, vote_average: parseFloat(e.target.value)})}
+          type="text"
+          value={movieData.language}
+          onChange={(e) => setMovieData({...movieData, language: e.target.value})}
           className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700"
-          required
+          placeholder="English, Vietnamese, etc."
         />
       </div>
 
       <button
         type="submit"
         className="w-full px-6 py-3 mt-6 rounded-lg bg-primary text-white hover:bg-primary/90"
+        disabled={loading}
       >
-        Add Movie
+        {loading ? 'Saving...' : (movieId ? 'Update Movie' : 'Add Movie')}
       </button>
     </form>
   );

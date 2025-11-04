@@ -67,22 +67,51 @@ def update_user(
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
-@router.delete("/{user_id}")
+@router.delete("/{user_id}", dependencies=[Depends(requires_role("admin"))])
 def delete_user(
     user_id: int, 
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # Admin có thể xóa bất kỳ user nào, user chỉ có thể xóa chính mình
-    if current_user.role != "admin" and current_user.id != user_id:
-        raise HTTPException(status_code=403, detail="Forbidden: You can only delete your own account")
-    # Không cho phép xóa tài khoản admin
-    target = user_service.get_by_id(db, user_id)
-    if target and target.role == "admin":
-        raise HTTPException(status_code=403, detail="Cannot delete admin accounts")
-
-    logger.info(f"[UserController] delete_user({user_id}) called")
-    deleted_user = user_service.delete(db, user_id)
-    if not deleted_user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return {"message": f"User with id {user_id} deleted successfully"}
+    """Xóa user (chỉ admin mới có quyền)"""
+    try:
+        logger.info(f"[UserController] delete_user({user_id}) called by admin {current_user.id}")
+        
+        # Kiểm tra user có tồn tại không
+        target = user_service.get_by_id(db, user_id)
+        if not target:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Không cho phép xóa tài khoản admin
+        if target.role == "admin":
+            raise HTTPException(status_code=403, detail="Cannot delete admin accounts")
+        
+        # Không cho phép xóa chính mình
+        if current_user.id == user_id:
+            raise HTTPException(status_code=403, detail="Cannot delete your own account")
+        
+        # Xóa user
+        try:
+            deleted_user = user_service.delete(db, user_id)
+            if not deleted_user:
+                logger.error(f"[UserController] delete() returned None for user_id={user_id}")
+                raise HTTPException(status_code=500, detail="Failed to delete user: service returned None")
+            
+            logger.info(f"[UserController] User {user_id} deleted successfully")
+            return {"message": "User deleted successfully", "id": user_id}
+        except HTTPException:
+            # Re-raise HTTPException để giữ nguyên status code và CORS headers
+            raise
+        except Exception as e:
+            error_msg = str(e)
+            logger.error(f"[UserController] Error deleting user {user_id}: {error_msg}", exc_info=True)
+            # Trả về thông báo lỗi chi tiết trong debug mode, ẩn trong production
+            from app.config.settings import settings
+            detail = error_msg if settings.DEBUG else "Failed to delete user. Please check server logs for details."
+            raise HTTPException(status_code=500, detail=detail)
+    except HTTPException:
+        # Re-raise HTTPException để FastAPI handle với CORS headers
+        raise
+    except Exception as e:
+        logger.error(f"[UserController] Unexpected error in delete_user: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")

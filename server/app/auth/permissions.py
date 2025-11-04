@@ -42,8 +42,8 @@ def requires_verified_user():
         return current_user
     return verified_checker
 
-def get_current_user():
+def get_current_user(current_user: User = Depends(get_current_user_from_token)):
     """
     Dependency để lấy current user (đã authenticated)
     """
-    return get_current_user_from_token
+    return current_user

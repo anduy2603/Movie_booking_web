@@ -123,37 +123,6 @@ const MovieDetails = () => {
              {timeFormat(movie.runtime || movie.duration)} · {Array.isArray(movie.genres) ? movie.genres.map(genre => genre.name || genre).join(", ") : (movie.genre || '')} · {(movie.release_date || '').split("-")[0]}
             </p>
 
-            <div className='flex items-center gap-4 mt-4'>
-              <button 
-                className='flex items-center gap-2 px-6 py-3 rounded-lg bg-primary text-white hover:bg-primary/90'
-                onClick={() => {
-                  const dateISO = selectedDate.toISOString().split('T')[0]
-                  const theaterQS = selectedTheaterId ? `?theater=${selectedTheaterId}` : ''
-                  navigate(`/movies/${id}/${dateISO}${theaterQS}`)
-                }}
-              >
-                Buy Tickets
-              </button>
-              
-              {user && (
-                <button 
-                  onClick={async () => {
-                    try {
-                      await favoriteService.toggleFavoriteRequest(user.id, id);
-                      toast.success(isFavorite ? 'Removed from favorites' : 'Added to favorites');
-                      setIsFavorite(!isFavorite);
-                    } catch (error) {
-                      console.error('Failed to update favorites:', error);
-                      toast.error('Failed to update favorites');
-                    }
-                  }}
-                  className='p-3 rounded-lg border border-gray-700 hover:border-primary'
-                >
-                  <Heart className={`w-6 h-6 ${isFavorite ? 'fill-primary text-primary' : ''}`} />
-                </button>
-              )}
-            </div>
-
             <div id="showtimes" className='mt-12'>
               <h2 className='text-2xl font-semibold mb-4'>Select Date & Theater</h2>
               <input
@@ -217,9 +186,23 @@ const MovieDetails = () => {
               >
                 Buy Tickets
               </button>
-              <button className='bg-gray-700 p-2.5 rounded-full transition cursor-pointer active:scale-95'>
-                <Heart className={`w-5 h-5`}/>
-              </button>
+              {user && (
+                <button 
+                  onClick={async () => {
+                    try {
+                      await favoriteService.toggleFavoriteRequest(user.id, id);
+                      toast.success(isFavorite ? 'Removed from favorites' : 'Added to favorites');
+                      setIsFavorite(!isFavorite);
+                    } catch (error) {
+                      console.error('Failed to update favorites:', error);
+                      toast.error('Failed to update favorites');
+                    }
+                  }}
+                  className='bg-gray-700 p-2.5 rounded-full transition cursor-pointer active:scale-95 hover:bg-gray-600'
+                >
+                  <Heart className={`w-5 h-5 ${isFavorite ? 'fill-primary text-primary' : ''}`}/>
+                </button>
+              )}
             </div>
           </div>
         </div>

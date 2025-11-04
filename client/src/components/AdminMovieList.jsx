@@ -7,7 +7,6 @@ import { useNavigate } from 'react-router-dom';
 const AdminMovieList = () => {
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -18,7 +17,6 @@ const AdminMovieList = () => {
   const fetchMovies = async () => {
     try {
       setLoading(true);
-      setError(null);
       const response = await movieService.getMoviesRequest();
       console.log('Movies response:', response);
       
@@ -36,10 +34,9 @@ const AdminMovieList = () => {
       if (movieData.length === 0) {
         toast.info('No movies found');
       }
-    } catch (error) {
-      console.error('Error fetching movies:', error);
-      setError(error.message || 'Failed to load movies');
-      toast.error(error.message || 'Failed to load movies');
+    } catch (err) {
+      console.error('Error fetching movies:', err);
+      toast.error(err.message || 'Failed to load movies');
       setMovies([]);
     } finally {
       setLoading(false);
@@ -92,7 +89,7 @@ const AdminMovieList = () => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Movie</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Release Date</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Runtime</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Rating</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Poster</th>
               <th className="px-6 py-3 text-center text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
@@ -103,7 +100,7 @@ const AdminMovieList = () => {
                   <div className="flex items-center">
                     <img
                       className="h-12 w-20 object-cover rounded"
-                      src={movie?.poster_path || movie?.poster_url || 'https://via.placeholder.com/200x300?text=No+Image'}
+                      src={movie?.poster_url || movie?.poster_path || 'https://via.placeholder.com/200x300?text=No+Image'}
                       alt={movie?.title || 'Movie poster'}
                       onError={(e) => {
                         e.target.src = 'https://via.placeholder.com/200x300?text=No+Image';
@@ -112,7 +109,7 @@ const AdminMovieList = () => {
                     <div className="ml-4">
                       <div className="text-sm font-medium text-white">{movie?.title || 'Untitled'}</div>
                       <div className="text-sm text-gray-400">
-                        {movie?.genre || 'No genre'}
+                        {movie?.genre ? movie.genre : 'No genre'}
                       </div>
                     </div>
                   </div>
@@ -121,12 +118,22 @@ const AdminMovieList = () => {
                   {movie?.release_date ? new Date(movie.release_date).toLocaleDateString() : 'No date'}
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-300">
-                  {movie?.duration ? `${Math.floor(movie.duration / 60)}h ${movie.duration % 60}m` : 'N/A'}
+                  {movie?.duration && movie.duration > 0 
+                    ? `${Math.floor(movie.duration / 60)}h ${movie.duration % 60}m` 
+                    : 'N/A'}
                 </td>
-                <td className="px-6 py-4 text-sm text-gray-300">
-                  {movie?.liked_by_count || 0}
+                <td className="px-6 py-4">
+                  <img
+                    className="h-16 w-12 object-cover rounded"
+                    src={movie?.poster_url || movie?.poster_path || 'https://via.placeholder.com/120x180?text=No+Image'}
+                    alt={movie?.title || 'Movie poster'}
+                    onError={(e) => {
+                      e.target.src = 'https://via.placeholder.com/120x180?text=No+Image';
+                    }}
+                  />
                 </td>
-                <td className="px-6 py-4 text-sm font-medium text-center">
+                <td className="px-6 py-4 text-sm font-medium">
+                  <div className="flex justify-center gap-2">
                     <button
                       onClick={() => navigate(`/admin/movies/edit/${movie.id}`)}
                       className="p-2 bg-blue-600 text-white rounded hover:bg-blue-700"
@@ -141,6 +148,7 @@ const AdminMovieList = () => {
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
+                  </div>
                 </td>
               </tr>
             ))}

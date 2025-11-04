@@ -39,20 +39,28 @@ const AdminUserList = () => {
   };
 
   const handleDelete = async (userId) => {
-    const target = users.find(u => u.id === userId)
-    if (target?.role === 'admin') {
-      toast.error('Cannot delete admin accounts')
-      return
+    const target = users.find(u => u.id === userId);
+    if (!target) {
+      toast.error('User not found');
+      return;
     }
-    if (window.confirm('Are you sure you want to delete this user?')) {
+    
+    if (target?.role === 'admin') {
+      toast.error('Cannot delete admin accounts');
+      return;
+    }
+    
+    if (window.confirm(`Are you sure you want to delete user "${target.full_name || target.email}"? This action cannot be undone.`)) {
       try {
-        await userService.deleteUserRequest(userId);
-        toast.success('User deleted (deactivated) successfully');
-        fetchUsers();
+        const response = await userService.deleteUserRequest(userId);
+        console.log('Delete response:', response);
+        toast.success(response?.data?.message || 'User deleted successfully');
+        // Refresh the list
+        await fetchUsers();
       } catch (error) {
         console.error('Failed to delete user:', error);
-        const msg = error?.response?.data?.detail || error?.message || 'Failed to delete user'
-        toast.error(msg)
+        const errorMsg = error?.response?.data?.detail || error?.response?.data?.message || error?.message || 'Failed to delete user';
+        toast.error(errorMsg);
       }
     }
   };

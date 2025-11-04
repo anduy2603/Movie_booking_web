@@ -32,12 +32,19 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
     def create(self, db: Session, data: CreateSchemaType) -> ModelType:
         logger.info(f"[{self.model_name}Repository] Creating record: {data}")
-        obj = self.model(**data.model_dump())
-        db.add(obj)
-        db.commit()
-        db.refresh(obj)
-        logger.info(f"[{self.model_name}Repository] Created record ID={obj.id}")
-        return obj
+        try:
+            # Use model_dump(exclude_unset=False) to include all fields, even with defaults
+            data_dict = data.model_dump(exclude_unset=False)
+            obj = self.model(**data_dict)
+            db.add(obj)
+            db.commit()
+            db.refresh(obj)
+            logger.info(f"[{self.model_name}Repository] Created record ID={obj.id}")
+            return obj
+        except Exception as e:
+            db.rollback()
+            logger.error(f"[{self.model_name}Repository] Error creating record: {e}")
+            raise
 
     def update(self, db: Session, obj: ModelType, data: UpdateSchemaType) -> ModelType:
         logger.info(f"[{self.model_name}Repository] Updating ID={obj.id}")
