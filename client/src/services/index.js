@@ -19,3 +19,4 @@ export * from './showtimeService';
 export * from './seatService';
 export * from './roomService';
 export * from './userService';
+export * from './paymentService';

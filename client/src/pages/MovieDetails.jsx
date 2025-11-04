@@ -20,6 +20,7 @@ const MovieDetails = () => {
   const [showtimes, setShowtimes] = useState([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isFavorite, setIsFavorite] = useState(false);
+  const [selectedShowtimeId, setSelectedShowtimeId] = useState(null);
   // const [similarMovies, setSimilarMovies] = useState([]);
 
   const fetchMovieDetails = async () => {
@@ -100,6 +101,14 @@ const MovieDetails = () => {
     });
   }, [showtimes, selectedDate, selectedTheaterId, theaterRoomIds]);
 
+  // Format time to HH:MM (24-hour format)
+  const formatTime = (dateString) => {
+    const date = new Date(dateString);
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
+
   if (loading) return <Loading/>;
   if (!movie) return null;
 
@@ -113,11 +122,7 @@ const MovieDetails = () => {
             <BlurCircle top='-100px' left='-100px'/>
             <p className='text-primary'>ENGLISH</p>
            <h1 className='text-4xl font-semibold max-w-96 text-balance'>{movie.title}</h1>
-           <div className='flex items-center gap-2 text-gray-300'>
-              <StarIcon className='w-5 h-5 text-primary fill-primary'/>
-              {typeof movie.vote_average === 'number' ? movie.vote_average.toFixed(1) : String(movie.vote_average ?? 0)} User Rating
-            </div>
-           <p className='text-gray-400 mt-2 text-sm leading-tight max-w-xl'>{movie.overview}</p>
+           <p className='text-gray-400 mt-2 text-sm leading-tight max-w-xl'>{movie.description || movie.overview || 'No description available'}</p>
             
             <p>
              {timeFormat(movie.runtime || movie.duration)} · {Array.isArray(movie.genres) ? movie.genres.map(genre => genre.name || genre).join(", ") : (movie.genre || '')} · {(movie.release_date || '').split("-")[0]}
@@ -153,15 +158,25 @@ const MovieDetails = () => {
               <div className='mt-6'>
                 {filteredShowtimes.length > 0 ? (
                   <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
-                    {filteredShowtimes.map(showtime => (
-                      <div 
-                        key={showtime.id}
-                        className='p-4 rounded-lg border border-gray-700 hover:border-primary cursor-pointer'
-                        onClick={() => navigate(`/booking/${showtime.id}`)}
-                      >
-                        <p className='font-semibold'>{new Date(showtime.start_time || showtime.startTime).toLocaleTimeString()}</p>
-                      </div>
-                    ))}
+                    {filteredShowtimes.map(showtime => {
+                      const isSelected = selectedShowtimeId === showtime.id;
+                      return (
+                        <button
+                          key={showtime.id}
+                          className={`p-4 rounded-lg border text-left w-full transition-all ${
+                            isSelected
+                              ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-white'
+                              : 'bg-gray-800 border-gray-700 text-white hover:border-gray-600'
+                          }`}
+                          onClick={() => {
+                            setSelectedShowtimeId(showtime.id);
+                            navigate(`/booking/${showtime.id}`);
+                          }}
+                        >
+                          <p className='font-semibold text-lg'>{formatTime(showtime.start_time || showtime.startTime)}</p>
+                        </button>
+                      );
+                    })}
                   </div>
                 ) : (
                   <p className='text-gray-400'>No showtimes available for this date.</p>
@@ -170,11 +185,16 @@ const MovieDetails = () => {
             </div>
 
             <div className='flex items-center flex-wrap gap-4 mt-4'>
-              <button className='flex items-center gap-2 px-7 py-3 text-sm bg-gray-800 
-              hover:bg-gray-900 transition rounded-md font-medium cursor-pointer active:scale-95'>
-                <PlayCircleIcon className='w-5 h-5'/>
-                Watch Trailer
-              </button>
+              {movie.trailer_url && (
+                <button 
+                  onClick={() => window.open(movie.trailer_url, '_blank')}
+                  className='flex items-center gap-2 px-7 py-3 text-sm bg-gray-800 
+                  hover:bg-gray-900 transition rounded-md font-medium cursor-pointer active:scale-95'
+                >
+                  <PlayCircleIcon className='w-5 h-5'/>
+                  Watch Trailer
+                </button>
+              )}
               <button
                 onClick={() => {
                   const dateISO = selectedDate.toISOString().split('T')[0]

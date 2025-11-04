@@ -11,7 +11,6 @@ import {Toaster} from 'react-hot-toast'
 import Footer from "./components/Footer";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
-import ApiTestPanel from "./components/ApiTestPanel";
 import ErrorBoundary from "./components/ErrorBoundary";
 import AdminMovieForm from "./components/AdminMovieForm";
 import AdminDashboard from "./components/AdminDashboard";
@@ -61,7 +60,6 @@ const App = () => {
           </Route>
         </Routes>
         {!isAdminRoute && <Footer/>}
-        <ApiTestPanel />
       </AuthProvider>
     </ErrorBoundary>
   )

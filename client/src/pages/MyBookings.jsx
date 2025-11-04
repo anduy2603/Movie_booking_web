@@ -59,6 +59,20 @@ const MyBookings = () => {
     }
   }
 
+  const deleteBooking = async (bookingId) => {
+    if (!window.confirm('Are you sure you want to delete this booking? This action cannot be undone.')) {
+      return
+    }
+    try {
+      await bookingService.deleteBookingRequest(bookingId)
+      toast.success('Booking deleted successfully')
+      load()
+    } catch (error) {
+      console.error('Delete failed:', error)
+      toast.error(error?.response?.data?.detail || 'Delete failed')
+    }
+  }
+
   if (!user) return null
   if (loading) {
     return (
@@ -109,16 +123,33 @@ const MyBookings = () => {
                     Row {b.row || ''} Seat {b.number || ''}
                     <span className='text-xs text-gray-500 ml-2'>#{b.seat_id}</span>
                   </td>
-                  <td className='px-6 py-4 text-sm text-gray-300'>{b.price}</td>
-                  <td className='px-6 py-4 text-sm text-gray-300'>{b.status}</td>
+                  <td className='px-6 py-4 text-sm text-gray-300'>{b.price?.toLocaleString() || 0} VND</td>
+                  <td className='px-6 py-4 text-sm'>
+                    <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                      b.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                      b.status === 'confirmed' ? 'bg-green-500/20 text-green-400' :
+                      'bg-gray-500/20 text-gray-400'
+                    }`}>
+                      {b.status}
+                    </span>
+                  </td>
                   <td className='px-6 py-4 text-sm font-medium text-center'>
-                    <button
-                      onClick={() => cancel(b.id)}
-                      disabled={b.status !== 'pending'}
-                      className='px-3 py-1 rounded bg-red-600 text-white disabled:opacity-50'
-                    >
-                      Cancel
-                    </button>
+                    <div className='flex gap-2 justify-center'>
+                      {b.status === 'pending' && (
+                        <button
+                          onClick={() => cancel(b.id)}
+                          className='px-3 py-1 rounded bg-orange-600 hover:bg-orange-700 text-white text-xs transition-colors'
+                        >
+                          Cancel
+                        </button>
+                      )}
+                      <button
+                        onClick={() => deleteBooking(b.id)}
+                        className='px-3 py-1 rounded bg-red-600 hover:bg-red-700 text-white text-xs transition-colors'
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

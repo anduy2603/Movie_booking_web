@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { movieService } from '../services';
 import MovieCard from '../components/MovieCard';
 import BlurCircle from '../components/BlurCircle';
@@ -8,6 +8,7 @@ import { toast } from 'react-hot-toast';
 
 const Movies = () => {
   const [movies, setMovies] = useState([]);
+  const [allMovies, setAllMovies] = useState([]); // Store all movies for client-side filtering
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
@@ -16,6 +17,17 @@ const Movies = () => {
     genre: '',
     sortBy: 'release_date'
   });
+
+  // Get unique genres from movies
+  const availableGenres = useMemo(() => {
+    const genres = new Set();
+    allMovies.forEach(movie => {
+      if (movie.genre) {
+        genres.add(movie.genre);
+      }
+    });
+    return Array.from(genres).sort();
+  }, [allMovies]);
 
   const fetchMovies = async () => {
     try {
@@ -31,9 +43,11 @@ const Movies = () => {
         throw new Error('No data received from API');
       }
 
-      setMovies(response.data?.data || []);
+      const moviesData = response.data?.data || [];
+      setAllMovies(moviesData); // Store all movies for filtering
+      setMovies(moviesData);
       setTotalPages(response.data?.pages || Math.ceil((response.data?.total || 0) / (response.data?.size || 10)));
-      console.log('Movies loaded:', response.data.items?.length || 0);
+      console.log('Movies loaded:', moviesData.length);
     } catch (error) {
       console.error('Error details:', {
         message: error.message,
@@ -47,8 +61,32 @@ const Movies = () => {
   };
 
   useEffect(() => {
-    fetchMovies();
+    if (!searchQuery && !filters.genre) {
+      fetchMovies();
+    }
   }, [page, searchQuery]);
+
+  // Client-side filtering by genre
+  const filteredMovies = useMemo(() => {
+    if (!filters.genre) {
+      return allMovies;
+    }
+    
+    return allMovies.filter(movie => 
+      movie.genre && movie.genre.toLowerCase().includes(filters.genre.toLowerCase())
+    );
+  }, [allMovies, filters.genre]);
+
+  // Apply genre filter to displayed movies
+  useEffect(() => {
+    if (filters.genre) {
+      setMovies(filteredMovies);
+      setPage(1); // Reset page when filtering
+    } else if (allMovies.length > 0 && !searchQuery) {
+      // Show all movies if no filter and have loaded movies
+      setMovies(allMovies);
+    }
+  }, [filters.genre]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -85,10 +123,9 @@ const Movies = () => {
           className='px-4 py-2 rounded-lg bg-gray-800 border border-gray-700'
         >
           <option value=''>All Genres</option>
-          <option value='action'>Action</option>
-          <option value='comedy'>Comedy</option>
-          <option value='drama'>Drama</option>
-          {/* Add more genres */}
+          {availableGenres.map(genre => (
+            <option key={genre} value={genre}>{genre}</option>
+          ))}
         </select>
       </div>
 

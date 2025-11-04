@@ -15,15 +15,26 @@ class BookingRepository(BaseRepository[Booking, BookingCreate, BookingBase]):
 
     # -------------------- LẤY THEO SHOWTIME --------------------
     def get_by_showtime(self, db: Session, showtime_id: int) -> List[Booking]:
-        """Lấy tất cả booking thuộc một suất chiếu."""
-        return db.query(Booking).filter(Booking.showtime_id == showtime_id).all()
+        """Lấy tất cả booking thuộc một suất chiếu (chỉ lấy pending và confirmed, không lấy cancelled)."""
+        return (
+            db.query(Booking)
+            .filter(
+                Booking.showtime_id == showtime_id,
+                Booking.status.in_(["pending", "confirmed"])
+            )
+            .all()
+        )
 
     # -------------------- LẤY THEO GHẾ --------------------
     def get_by_seat(self, db: Session, showtime_id: int, seat_id: int) -> Optional[Booking]:
-        """Kiểm tra xem ghế này trong suất chiếu đã được đặt chưa."""
+        """Kiểm tra xem ghế này trong suất chiếu đã được đặt chưa (chỉ kiểm tra pending và confirmed)."""
         return (
             db.query(Booking)
-            .filter(Booking.showtime_id == showtime_id, Booking.seat_id == seat_id)
+            .filter(
+                Booking.showtime_id == showtime_id,
+                Booking.seat_id == seat_id,
+                Booking.status.in_(["pending", "confirmed"])
+            )
             .first()
         )
 
