@@ -24,6 +24,23 @@ services:
     networks:
       - moviebooking-network
 
+  client:
+    build:
+      context: ./client
+      # Use Dockerfile.dev for development with hot reload
+      # dockerfile: Dockerfile.dev
+    container_name: moviebooking-client
+    ports:
+      - "3000:80"
+    # Production: không cần volumes vì đã build trong Dockerfile
+    # Development: uncomment volumes và dùng Dockerfile.dev
+    # volumes:
+    #   - ./client:/app
+    #   - /app/node_modules
+    restart: unless-stopped
+    networks:
+      - moviebooking-network
+
   # Optional: Add PostgreSQL for production
   # postgres:
   #   image: postgres:15-alpine

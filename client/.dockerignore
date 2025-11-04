@@ -1,0 +1,22 @@
+node_modules
+dist
+.git
+.gitignore
+README.md
+.env
+.env.local
+.env.*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+*.log
+.vscode
+.idea
+*.swp
+*.swo
+*~
+# Exclude package-lock.json để tránh conflict giữa Windows và Linux
+# package-lock.json sẽ được tạo lại trong container với đúng platform
+package-lock.json
+

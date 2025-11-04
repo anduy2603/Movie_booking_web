@@ -8,5 +8,15 @@ export default defineConfig({
     react(),
     tailwindcss()
   ],
-  
+  server: {
+    host: '0.0.0.0', // Allow external connections (for Docker)
+    port: 5173,
+    watch: {
+      usePolling: true, // Enable polling for Docker volume mounts
+    },
+    hmr: {
+      host: 'localhost', // HMR host for browser connection
+      port: 5173,
+    },
+  },
 })

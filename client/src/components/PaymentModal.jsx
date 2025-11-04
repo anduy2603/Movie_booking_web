@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { X, CreditCard, Wallet, Smartphone } from 'lucide-react';
-import { toast } from 'react-hot-toast';
 
 const PaymentModal = ({ isOpen, onClose, totalAmount, onConfirm }) => {
   const [selectedMethod, setSelectedMethod] = useState('cash');
