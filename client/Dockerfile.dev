@@ -2,12 +2,29 @@ FROM node:20-bullseye
 
 WORKDIR /app
 
+# Copy package files
 COPY package*.json ./
 
-RUN npm install
+# Install dependencies during build to ensure Linux-native binaries are in the image
+# This ensures that when volume is created, it starts with correct dependencies
+RUN npm install --legacy-peer-deps --force && \
+    npm rebuild
 
+# Verify rollup binary is installed
+RUN ls -la node_modules/@rollup/ 2>/dev/null || echo "No @rollup directory" && \
+    if [ ! -d "node_modules/@rollup/rollup-linux-x64-gnu" ]; then \
+        echo "Installing rollup Linux binary explicitly..."; \
+        npm install --save-optional @rollup/rollup-linux-x64-gnu --legacy-peer-deps --force; \
+    fi
+
+# Copy entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Copy source code
 COPY . .
 
 EXPOSE 5173
 
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
+# Use entrypoint script to verify and fix dependencies if needed
+ENTRYPOINT ["docker-entrypoint.sh"]
