@@ -145,6 +145,24 @@ def delete_booking(
     
     return booking_service.delete_booking(db, booking_id)
 
+# -------------------- PAY BOOKING --------------------
+@router.post("/{booking_id}/pay", response_model=BookingRead)
+def pay_booking(
+    booking_id: int,
+    payment_method: str = Query("bank_transfer", description="Payment method (bank_transfer, momo, zalopay, etc.)"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Thanh toán booking - tạo payment và link với booking"""
+    booking = booking_service.get_booking_by_id(db, booking_id)
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    # Admin có thể thanh toán bất kỳ booking nào, user chỉ thanh toán booking của mình
+    if current_user.role != "admin" and booking.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Forbidden: You can only pay for your own bookings")
+    
+    return booking_service.pay_booking(db, booking_id, payment_method)
 
 # -------------------- GET BOOKINGS BY SHOWTIME --------------------
 @router.get("/showtime/{showtime_id}", response_model=List[BookingRead])

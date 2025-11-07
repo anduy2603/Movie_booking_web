@@ -36,6 +36,13 @@ class BookingService(BaseService[Booking, BookingCreate, BookingUpdate]):
         if not booking:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking not found")
         
+        # Kiểm tra xem booking đã cancelled chưa
+        if booking.status == "cancelled":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail="Booking is already cancelled"
+            )
+        
         booking.status = "cancelled"
         
         # Update payment status to cancelled if payment exists
@@ -70,10 +77,17 @@ class BookingService(BaseService[Booking, BookingCreate, BookingUpdate]):
         return items, total
 
     def delete_booking(self, db: Session, booking_id: int) -> BookingRead:
-        """Xóa booking và update payment nếu cần"""
+        """Xóa booking - CHỈ cho phép xóa khi booking đã được cancelled"""
         booking = self.repository.get_by_id(db, booking_id)
         if not booking:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking not found")
+        
+        # Chỉ cho phép xóa booking khi đã được cancelled
+        if booking.status != "cancelled":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail=f"Cannot delete booking with status '{booking.status}'. Please cancel the booking first."
+            )
         
         payment_id = booking.payment_id  # Lưu payment_id trước khi delete
         
@@ -107,10 +121,64 @@ class BookingService(BaseService[Booking, BookingCreate, BookingUpdate]):
         
         if not deleted_booking:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking not found")
+        logger.info(f"Booking id={booking_id} deleted successfully")
         return deleted_booking
 
     def get_bookings_by_showtime(self, db: Session, showtime_id: int):
         """Return all bookings for a given showtime (used to determine occupied seats)."""
         return self.repository.get_by_showtime(db, showtime_id)
+
+    def pay_booking(self, db: Session, booking_id: int, payment_method: str = "bank_transfer") -> BookingRead:
+        """Thanh toán booking - tạo payment và link với booking"""
+        booking = self.repository.get_by_id(db, booking_id)
+        if not booking:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking not found")
+        
+        # Kiểm tra booking đã cancelled chưa
+        if booking.status == "cancelled":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot pay for a cancelled booking"
+            )
+        
+        # Kiểm tra booking đã có payment chưa
+        if booking.payment_id:
+            # Kiểm tra payment status
+            from app.services.payment_service import PaymentService
+            payment_service = PaymentService()
+            try:
+                payment = payment_service.get_by_id(db, booking.payment_id)
+                if payment and payment.status == "success":
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Booking has already been paid"
+                    )
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.warning(f"Error checking payment status: {e}")
+        
+        # Tạo payment mới
+        from app.schemas.payment_schema import PaymentCreate
+        payment_data = PaymentCreate(
+            method=payment_method,
+            amount=booking.price,
+            created_by=booking.user_id,
+            status="pending"  # Status sẽ được update thành "success" sau khi xác nhận thanh toán
+        )
+        
+        from app.services.payment_service import PaymentService
+        payment_service = PaymentService()
+        payment = payment_service.create_payment(db, payment_data)
+        
+        # Link payment với booking
+        booking.payment_id = payment.id
+        # Cập nhật booking status thành confirmed khi thanh toán
+        booking.status = "confirmed"
+        
+        db.commit()
+        db.refresh(booking)
+        logger.info(f"Payment {payment.id} created and linked to booking {booking_id}")
+        return booking
 
 

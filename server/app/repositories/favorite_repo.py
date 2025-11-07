@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import insert, delete, select
 from typing import List
 from app.models.favorites import favorites
@@ -14,11 +14,12 @@ class FavoriteRepository:
         return db.execute(stmt).fetchall()
 
     def get_user_favorites(self, db: Session, user_id: int) -> List[Movie]:
-        """Lấy danh sách phim yêu thích của user"""
+        """Lấy danh sách phim yêu thích của user với relationship loaded"""
         stmt = (
             select(Movie)
             .join(self.table, self.table.c.movie_id == Movie.id)
             .where(self.table.c.user_id == user_id)
+            .options(selectinload(Movie.liked_by))  # Eager load relationship để tính liked_by_count
         )
         return db.execute(stmt).scalars().all()
 

@@ -1,13 +1,17 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Users, Film, Calendar, Settings, LogOut } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { Outlet } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const { logout } = useAuth();
-  const [activeTab, setActiveTab] = useState('movies');
+  const location = useLocation();
+  const { logout, user } = useAuth();
+  const [activeTab, setActiveTab] = useState(
+    location.pathname.split('/')[2] || 'movies'
+  );
 
   const menuItems = [
     { id: 'movies', label: 'Movies', icon: <Film />, path: '/admin/movies' },
@@ -18,10 +22,35 @@ const AdminDashboard = () => {
     { id: 'settings', label: 'Settings', icon: <Settings />, path: '/admin/settings' },
   ];
 
+  // Update active tab when location changes
+  useEffect(() => {
+    const path = location.pathname.split('/')[2] || 'movies';
+    setActiveTab(path);
+  }, [location]);
+
+  // Check admin access
+  useEffect(() => {
+    if (user && user.role !== 'admin') {
+      toast.error('Access denied. Admin privileges required.');
+      navigate('/');
+    }
+  }, [user, navigate]);
+
   const handleLogout = async () => {
-    await logout();
-    navigate('/');
+    try {
+      await logout();
+      toast.success('Logged out successfully');
+      navigate('/');
+    } catch (error) {
+      console.error('Logout failed:', error);
+      toast.error('Failed to logout');
+    }
   };
+
+  // Only render if user is admin
+  if (!user || user.role !== 'admin') {
+    return null;
+  }
 
   return (
     <div className="flex h-screen bg-gray-900">

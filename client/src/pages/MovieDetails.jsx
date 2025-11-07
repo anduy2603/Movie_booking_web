@@ -39,11 +39,15 @@ const MovieDetails = () => {
       if (user) {
         try {
           const favList = await favoriteService.getUserFavoritesRequest(user.id);
-          const list = favList?.data || [];
-          setIsFavorite(Array.isArray(list) && list.some((m) => String(m.id) === String(id)));
+          // FastAPI với response_model=List[MovieRead] trả về array trực tiếp trong response.data
+          const favoritesList = Array.isArray(favList?.data) ? favList.data : [];
+          setIsFavorite(favoritesList.some((m) => String(m.id) === String(id)));
         } catch (error) {
           console.error('Error checking favorite status:', error);
+          setIsFavorite(false);
         }
+      } else {
+        setIsFavorite(false);
       }
 
     } catch (error) {
@@ -57,7 +61,8 @@ const MovieDetails = () => {
 
   useEffect(() => {
     fetchMovieDetails();
-  }, [id, selectedDate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, selectedDate, user]);
 
   // Theater selection only (rooms are admin-defined inside showtimes)
   const [theaters, setTheaters] = useState([]);
@@ -210,17 +215,22 @@ const MovieDetails = () => {
                 <button 
                   onClick={async () => {
                     try {
-                      await favoriteService.toggleFavoriteRequest(user.id, id);
-                      toast.success(isFavorite ? 'Removed from favorites' : 'Added to favorites');
-                      setIsFavorite(!isFavorite);
+                      await favoriteService.toggleFavoriteRequest(user.id, parseInt(id));
+                      // Reload favorite status from server để đảm bảo data chính xác
+                      const favList = await favoriteService.getUserFavoritesRequest(user.id);
+                      const favoritesList = Array.isArray(favList?.data) ? favList.data : [];
+                      const newFavoriteStatus = favoritesList.some((m) => String(m.id) === String(id));
+                      setIsFavorite(newFavoriteStatus);
+                      toast.success(newFavoriteStatus ? 'Added to favorites' : 'Removed from favorites');
                     } catch (error) {
                       console.error('Failed to update favorites:', error);
                       toast.error('Failed to update favorites');
                     }
                   }}
                   className='bg-gray-700 p-2.5 rounded-full transition cursor-pointer active:scale-95 hover:bg-gray-600'
+                  title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
                 >
-                  <Heart className={`w-5 h-5 ${isFavorite ? 'fill-primary text-primary' : ''}`}/>
+                  <Heart className={`w-5 h-5 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-400'}`}/>
                 </button>
               )}
             </div>

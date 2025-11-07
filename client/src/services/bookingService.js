@@ -44,6 +44,13 @@ export const getBookingsByShowtimeRequest = (showtimeId) => {
   return api.get(`/bookings/showtime/${showtimeId}`);
 };
 
+// Pay for a booking
+export const payBookingRequest = (bookingId, paymentMethod = 'bank_transfer') => {
+  return api.post(`/bookings/${bookingId}/pay`, null, {
+    params: { payment_method: paymentMethod }
+  });
+};
+
 export default {
   getBookingsRequest,
   getBookingByIdRequest,
@@ -53,4 +60,5 @@ export default {
   cancelBookingRequest,
   deleteBookingRequest,
   getBookingsByShowtimeRequest,
+  payBookingRequest,
 };

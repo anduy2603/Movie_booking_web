@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { bookingService, seatService } from '../services'
 import { useAuth } from '../hooks/useAuth'
 import { toast } from 'react-hot-toast'
@@ -11,7 +11,7 @@ const MyBookings = () => {
   const [totalPages, setTotalPages] = useState(1)
   const [statusFilter, setStatusFilter] = useState('')
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       if (!user) return
       setLoading(true)
@@ -42,16 +42,19 @@ const MyBookings = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user, page, statusFilter])
 
   useEffect(() => {
     load()
-  }, [user, page, statusFilter])
+  }, [load])
 
   const cancel = async (bookingId) => {
+    if (!window.confirm('Are you sure you want to cancel this booking? Once cancelled, you can delete it permanently.')) {
+      return
+    }
     try {
       await bookingService.cancelBookingRequest(bookingId)
-      toast.success('Booking cancelled')
+      toast.success('Booking cancelled successfully. You can now delete it if you wish.')
       load()
     } catch (error) {
       console.error('Cancel failed:', error)
@@ -60,7 +63,13 @@ const MyBookings = () => {
   }
 
   const deleteBooking = async (bookingId) => {
-    if (!window.confirm('Are you sure you want to delete this booking? This action cannot be undone.')) {
+    const booking = bookings.find(b => b.id === bookingId)
+    if (booking && booking.status !== 'cancelled') {
+      toast.error('You can only delete cancelled bookings. Please cancel the booking first.')
+      return
+    }
+    
+    if (!window.confirm('Are you sure you want to permanently delete this cancelled booking? This action cannot be undone.')) {
       return
     }
     try {
@@ -70,6 +79,20 @@ const MyBookings = () => {
     } catch (error) {
       console.error('Delete failed:', error)
       toast.error(error?.response?.data?.detail || 'Delete failed')
+    }
+  }
+
+  const payBooking = async (bookingId) => {
+    if (!window.confirm('Bạn có chắc chắn muốn thanh toán booking này? Sau khi thanh toán, booking sẽ được xác nhận.')) {
+      return
+    }
+    try {
+      await bookingService.payBookingRequest(bookingId, 'bank_transfer')
+      toast.success('Thanh toán thành công! Booking đã được xác nhận.')
+      load()
+    } catch (error) {
+      console.error('Payment failed:', error)
+      toast.error(error?.response?.data?.detail || 'Thanh toán thất bại')
     }
   }
 
@@ -90,10 +113,11 @@ const MyBookings = () => {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className='px-4 py-2 rounded-lg bg-gray-800 border border-gray-700'
+          className='px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white'
         >
           <option value=''>All Statuses</option>
           <option value='pending'>Pending</option>
+          <option value='confirmed'>Confirmed</option>
           <option value='cancelled'>Cancelled</option>
         </select>
       </div>
@@ -128,27 +152,50 @@ const MyBookings = () => {
                     <span className={`px-2 py-1 rounded text-xs font-semibold ${
                       b.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
                       b.status === 'confirmed' ? 'bg-green-500/20 text-green-400' :
+                      b.status === 'cancelled' ? 'bg-red-500/20 text-red-400' :
                       'bg-gray-500/20 text-gray-400'
                     }`}>
                       {b.status}
                     </span>
                   </td>
                   <td className='px-6 py-4 text-sm font-medium text-center'>
-                    <div className='flex gap-2 justify-center'>
-                      {b.status === 'pending' && (
+                    <div className='flex gap-2 justify-center flex-wrap'>
+                      {/* Hiển thị nút Thanh toán khi booking chưa có payment hoặc payment chưa success */}
+                      {(b.status === 'pending' || b.status === 'confirmed') && !b.payment_id && (
+                        <button
+                          onClick={() => payBooking(b.id)}
+                          className='px-3 py-1 rounded bg-green-600 hover:bg-green-700 text-white text-xs transition-colors'
+                          title='Thanh toán booking này'
+                        >
+                          Thanh toán
+                        </button>
+                      )}
+                      {/* Chỉ hiển thị nút Cancel khi booking chưa cancelled và chưa được thanh toán */}
+                      {(b.status === 'pending' || (b.status === 'confirmed' && !b.payment_id)) && (
                         <button
                           onClick={() => cancel(b.id)}
                           className='px-3 py-1 rounded bg-orange-600 hover:bg-orange-700 text-white text-xs transition-colors'
+                          title='Cancel this booking'
                         >
                           Cancel
                         </button>
                       )}
-                      <button
-                        onClick={() => deleteBooking(b.id)}
-                        className='px-3 py-1 rounded bg-red-600 hover:bg-red-700 text-white text-xs transition-colors'
-                      >
-                        Delete
-                      </button>
+                      {/* Chỉ hiển thị nút Delete khi booking đã cancelled */}
+                      {b.status === 'cancelled' && (
+                        <button
+                          onClick={() => deleteBooking(b.id)}
+                          className='px-3 py-1 rounded bg-red-600 hover:bg-red-700 text-white text-xs transition-colors'
+                          title='Permanently delete this cancelled booking'
+                        >
+                          Delete
+                        </button>
+                      )}
+                      {/* Hiển thị thông báo khi đã thanh toán */}
+                      {b.payment_id && b.status === 'confirmed' && (
+                        <span className='text-xs text-green-400 italic' title='Đã thanh toán'>
+                          ✓ Đã thanh toán
+                        </span>
+                      )}
                     </div>
                   </td>
                 </tr>
