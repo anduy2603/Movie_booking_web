@@ -180,16 +180,36 @@ Chỉnh sửa file `server/.env` và cập nhật:
 - `DEBUG=true` - Bật debug mode cho development
 
 #### 4. Chạy toàn bộ hệ thống
+
+**Development Mode (Hot Reload - Khuyến nghị):**
 ```bash
-# Từ thư mục gốc
-docker-compose up --build
+# Chạy với docker-compose.dev.yml (port 5173)
+docker-compose -f docker-compose.dev.yml up --build -d
+
+# Xem logs để đảm bảo containers đã start
+docker-compose -f docker-compose.dev.yml logs -f
+```
+
+**Production Mode (Build static):**
+```bash
+# Chạy với docker-compose.yml (port 3000)
+docker-compose up --build -d
+
+# Xem logs
+docker-compose logs -f
 ```
 
 Hệ thống sẽ chạy tại:
 - **Backend API**: http://localhost:8000
 - **API Documentation (Swagger)**: http://localhost:8000/docs
 - **API Documentation (ReDoc)**: http://localhost:8000/redoc
-- **Frontend**: http://localhost:3000 (với Docker) hoặc http://localhost:5173 (với npm run dev)
+- **Frontend Development**: http://localhost:5173 (với `docker-compose.dev.yml`)
+- **Frontend Production**: http://localhost:3000 (với `docker-compose.yml`)
+
+> ⚠️ **Lưu ý quan trọng**:
+> - Nếu gặp lỗi `ERR_CONNECTION_REFUSED` trên port 5173, xem [Client Run Guide](./CLIENT_RUN_GUIDE.md)
+> - Nếu gặp lỗi `npm ci` khi build Docker, đảm bảo file `client/package-lock.json` đã được commit vào git
+> - Dockerfile đã được cấu hình để tự động fallback về `npm install` nếu không có `package-lock.json`
 
 ### Cài đặt local (Development - Khuyến nghị)
 
@@ -229,14 +249,16 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```bash
 cd client
 
-# Cài đặt dependencies
-npm install
+# Cài đặt dependencies (sẽ tạo package-lock.json)
+npm install --legacy-peer-deps
 
 # Chạy development server
 npm run dev
 ```
 
 Frontend sẽ chạy tại: http://localhost:5173
+
+> 💡 **Lưu ý**: Nên commit file `package-lock.json` vào git để đảm bảo consistency khi build Docker.
 
 ## 📚 API Documentation
 
@@ -509,14 +531,14 @@ alembic history
 - [Server Setup Guide](./server/SETUP.md) - Hướng dẫn setup server
 - [Server Auth Test](./SERVER_AUTH_TEST_GUIDE.md) - Testing authentication
 - [Docker Guide](./DOCKER_GUIDE.md) - Hướng dẫn sử dụng Docker
-- [Docker Fix Guide](./DOCKER_FIX.md) - Sửa lỗi Docker npm ci
-- [Project Check Report](./PROJECT_CHECK_REPORT.md) - Báo cáo kiểm tra dự án chi tiết
+- [Client Run Guide](./CLIENT_RUN_GUIDE.md) - Hướng dẫn chạy client và troubleshooting
 
 ## 🐛 Troubleshooting
 
 ### Lỗi kết nối database
 - Kiểm tra `DATABASE_URL` trong file `.env`
 - Đảm bảo database file tồn tại (SQLite) hoặc server đang chạy (PostgreSQL)
+- Chạy migrations: `cd server && alembic upgrade head`
 
 ### Lỗi authentication
 - Kiểm tra `JWT_SECRET_KEY` trong file `.env`
@@ -531,6 +553,38 @@ alembic history
 - Kiểm tra version của Alembic: `alembic current`
 - Xem lịch sử: `alembic history`
 - Reset nếu cần: Xem `server/reset_alembic.ps1`
+
+### Lỗi Docker - npm ci
+- **Nguyên nhân**: Thiếu file `package-lock.json`
+- **Giải pháp**: 
+  ```bash
+  cd client
+  npm install --legacy-peer-deps
+  git add package-lock.json
+  git commit -m "Add package-lock.json"
+  git push
+  ```
+- Dockerfile đã được cấu hình để tự động fallback về `npm install` nếu không có `package-lock.json`
+
+### Lỗi Client - ERR_CONNECTION_REFUSED trên port 5173
+- **Nguyên nhân**: Client container chưa start hoặc đang dùng sai docker-compose file
+- **Giải pháp**: 
+  - Development: `docker-compose -f docker-compose.dev.yml up --build -d`
+  - Hoặc chạy local: `cd client && npm run dev`
+- Xem chi tiết: [Client Run Guide](./CLIENT_RUN_GUIDE.md)
+
+### Lỗi Docker - Port already in use
+- **Giải pháp**: 
+  ```bash
+  # Windows
+  netstat -ano | findstr :8000
+  taskkill /PID <PID> /F
+  
+  # Linux/Mac
+  lsof -i :8000
+  kill -9 <PID>
+  ```
+- Hoặc đổi port trong `docker-compose.yml`
 
 ## 📋 Roadmap (Kế hoạch tương lai)
 
@@ -615,10 +669,12 @@ Dự án đã **hoàn thiện đầy đủ** cho môi trường development vớ
 
 - 🔒 **Bảo mật**: Đảm bảo không commit file `.env` vào git. File này chứa thông tin nhạy cảm!
 - 🐛 **Bugs**: Dự án đã được kiểm tra kỹ lưỡng, nhưng nếu phát hiện bugs, vui lòng báo cáo.
-- 📝 **Documentation**: Tài liệu được cập nhật thường xuyên. Xem `PROJECT_CHECK_REPORT.md` để biết chi tiết.
+- 📝 **Documentation**: Tài liệu được cập nhật thường xuyên. Xem các file `.md` trong thư mục gốc để biết chi tiết.
 - 🚀 **Production**: Chưa được tối ưu và test kỹ lưỡng cho production environment. Cần PostgreSQL, Redis, và monitoring trước khi deploy.
 - 💾 **Database**: Hiện tại dùng SQLite cho development. Production cần PostgreSQL.
 - 🔐 **Security**: UniqueConstraint trong database ngăn trùng ghế. Validation được thực hiện ở cả backend và database level.
+- 📦 **Package Lock**: File `package-lock.json` nên được commit vào git để đảm bảo consistency khi build Docker.
+- 🐳 **Docker**: Sử dụng `docker-compose.dev.yml` cho development (hot reload) và `docker-compose.yml` cho production (static build).
 
 ---
 
