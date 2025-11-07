@@ -1,5 +1,5 @@
 #!/bin/bash
-# Script to create .env file from env.example
+# Script to create .env file from .example.env
 # Run this script to automatically create .env with secure random keys
 
 echo "🎬 Creating .env file for Movie Booking API..."
@@ -14,14 +14,14 @@ if [ -f ".env" ]; then
     fi
 fi
 
-# Check if env.example exists
-if [ ! -f "env.example" ]; then
-    echo "❌ env.example file not found!"
+# Check if .example.env exists
+if [ ! -f ".example.env" ]; then
+    echo "❌ .example.env file not found!"
     exit 1
 fi
 
-# Copy env.example to .env
-cp env.example .env
+# Copy .example.env to .env
+cp .example.env .env
 
 # Generate secure random keys
 echo "🔑 Generating secure keys..."

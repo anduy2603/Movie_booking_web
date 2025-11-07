@@ -75,7 +75,7 @@ git clone <repo>
 cd MovieBooking
 
 # Tạo .env từ template
-cp server/.env.example server/.env
+cp server/.example.env server/.env
 
 # Chỉnh sửa .env với dev values
 # Chạy ứng dụng

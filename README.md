@@ -137,6 +137,8 @@ MovieBooking/
 
 ### Cài đặt với Docker (Khuyến nghị cho Development)
 
+> ⚠️ **Lưu ý quan trọng**: Nếu gặp lỗi `npm ci` khi build Docker, vui lòng xem [Docker Fix Guide](./DOCKER_FIX.md) hoặc [Quick Fix](./QUICK_FIX.md)
+
 #### 1. Clone repository
 ```bash
 git clone <repository-url>
@@ -507,6 +509,7 @@ alembic history
 - [Server Setup Guide](./server/SETUP.md) - Hướng dẫn setup server
 - [Server Auth Test](./SERVER_AUTH_TEST_GUIDE.md) - Testing authentication
 - [Docker Guide](./DOCKER_GUIDE.md) - Hướng dẫn sử dụng Docker
+- [Docker Fix Guide](./DOCKER_FIX.md) - Sửa lỗi Docker npm ci
 - [Project Check Report](./PROJECT_CHECK_REPORT.md) - Báo cáo kiểm tra dự án chi tiết
 
 ## 🐛 Troubleshooting

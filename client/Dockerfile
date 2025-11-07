@@ -9,8 +9,14 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-# Lightningcss-win32 đã được xóa khỏi package.json nên không cần --omit=optional
-RUN npm ci
+# Use npm ci if package-lock.json exists, otherwise use npm install
+# This allows the project to work even if package-lock.json is not committed
+RUN if [ -f package-lock.json ]; then \
+        npm ci; \
+    else \
+        echo "⚠️  package-lock.json not found, using npm install instead"; \
+        npm install --legacy-peer-deps; \
+    fi
 
 # Copy source code (for production build)
 COPY . .

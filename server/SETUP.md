@@ -15,7 +15,7 @@ Hướng dẫn cài đặt và chạy Movie Booking API.
 #### 1. Tạo file môi trường
 ```bash
 cd server
-cp env.example .env
+cp .example.env .env
 ```
 
 #### 2. Sinh khóa bảo mật
@@ -64,7 +64,7 @@ pip install -r requirements.txt
 
 #### 3. Tạo file môi trường
 ```bash
-cp env.example .env
+cp .example.env .env
 ```
 
 #### 4. Sinh và cập nhật khóa bảo mật
@@ -156,7 +156,7 @@ server/
 ├── alembic/              # Database migrations
 ├── logs/                 # Log files
 ├── .env                  # Environment variables (NOT in git)
-├── env.example           # Example env file
+├── .example.env          # Example env file
 └── requirements.txt      # Python dependencies
 ```
 

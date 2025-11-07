@@ -115,4 +115,8 @@ VITE_API_BASE_URL=http://localhost:8000
 ```
 
 ## Testing
-Use the `ApiTestPanel` component in development mode to test API connections and services.
+Use the backend test script `server/test_api.py` to test API endpoints:
+```bash
+cd server
+python test_api.py
+```

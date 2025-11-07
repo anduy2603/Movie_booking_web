@@ -1,4 +1,4 @@
-version: "3.9"
+# version field is obsolete in Docker Compose v2+, removed to avoid warning
 
 services:
   server:

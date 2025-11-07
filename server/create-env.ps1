@@ -1,4 +1,4 @@
-# Script to create .env file from env.example
+# Script to create .env file from .example.env
 # Run this script to automatically create .env with secure random keys
 
 Write-Host "🎬 Creating .env file for Movie Booking API..." -ForegroundColor Green
@@ -13,14 +13,14 @@ if (Test-Path ".env") {
     }
 }
 
-# Read env.example
-if (-not (Test-Path "env.example")) {
-    Write-Host "❌ env.example file not found!" -ForegroundColor Red
+# Read .example.env
+if (-not (Test-Path ".example.env")) {
+    Write-Host "❌ .example.env file not found!" -ForegroundColor Red
     exit 1
 }
 
-# Copy env.example to .env
-Copy-Item "env.example" ".env"
+# Copy .example.env to .env
+Copy-Item ".example.env" ".env"
 
 # Generate secure random keys
 function Get-RandomHexString {
