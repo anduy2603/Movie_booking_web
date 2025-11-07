@@ -76,6 +76,59 @@ class BookingService(BaseService[Booking, BookingCreate, BookingUpdate]):
         total = self.repository.count_by_user(db, user_id)
         return items, total
 
+    def get_user_bookings_paginated_with_details(self, db: Session, user_id: int, page: int, size: int) -> Tuple[List, int]:
+        """Lấy danh sách booking của user có phân trang với thông tin chi tiết (showtime, movie, theater)"""
+        from sqlalchemy.orm import selectinload
+        from app.models.showtime import Showtime
+        from app.models.movie import Movie
+        from app.models.room import Room
+        from app.models.theater import Theater
+        from app.models.seat import Seat
+        
+        offset = (page - 1) * size
+        # Load bookings với relationships
+        bookings = (
+            db.query(Booking)
+            .options(
+                selectinload(Booking.showtime).selectinload(Showtime.movie),
+                selectinload(Booking.showtime).selectinload(Showtime.room).selectinload(Room.theater),
+                selectinload(Booking.seat)
+            )
+            .filter(Booking.user_id == user_id)
+            .order_by(Booking.id.desc())
+            .offset(offset)
+            .limit(size)
+            .all()
+        )
+        
+        total = self.repository.count_by_user(db, user_id)
+        
+        # Transform to BookingDetailRead
+        result = []
+        for booking in bookings:
+            detail = {
+                "id": booking.id,
+                "user_id": booking.user_id,
+                "showtime_id": booking.showtime_id,
+                "seat_id": booking.seat_id,
+                "price": booking.price,
+                "status": booking.status,
+                "payment_id": booking.payment_id,
+                "created_at": booking.created_at,
+                "start_time": booking.showtime.start_time if booking.showtime else None,
+                "end_time": booking.showtime.end_time if booking.showtime else None,
+                "movie_title": booking.showtime.movie.title if booking.showtime and booking.showtime.movie else None,
+                "movie_poster_url": booking.showtime.movie.poster_url if booking.showtime and booking.showtime.movie else None,
+                "theater_name": booking.showtime.room.theater.name if booking.showtime and booking.showtime.room and booking.showtime.room.theater else None,
+                "theater_address": booking.showtime.room.theater.address if booking.showtime and booking.showtime.room and booking.showtime.room.theater else None,
+                "room_name": booking.showtime.room.name if booking.showtime and booking.showtime.room else None,
+                "seat_row": booking.seat.row if booking.seat else None,
+                "seat_number": booking.seat.number if booking.seat else None,
+            }
+            result.append(detail)
+        
+        return result, total
+
     def delete_booking(self, db: Session, booking_id: int) -> BookingRead:
         """Xóa booking - CHỈ cho phép xóa khi booking đã được cancelled"""
         booking = self.repository.get_by_id(db, booking_id)

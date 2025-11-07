@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, status, Query, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 
-from app.schemas.booking_schema import BookingCreate, BookingRead
+from app.schemas.booking_schema import BookingCreate, BookingRead, BookingDetailRead
 from app.schemas.base_schema import PaginatedResponse
 from app.config.database import get_db
 from app.services.booking_service import BookingService
@@ -47,7 +47,7 @@ def get_booking_by_id(
     return booking
 
 # -------------------- GET BOOKINGS BY USER WITH PAGINATION --------------------
-@router.get("/user/{user_id}", response_model=PaginatedResponse[BookingRead])
+@router.get("/user/{user_id}", response_model=PaginatedResponse[BookingDetailRead])
 def get_user_bookings(
     user_id: int,
     current_user: User = Depends(get_current_user),
@@ -59,8 +59,8 @@ def get_user_bookings(
     if current_user.role != "admin" and current_user.id != user_id:
         raise HTTPException(status_code=403, detail="Forbidden: You can only view your own bookings")
     
-    bookings, total = booking_service.get_user_bookings_paginated(db, user_id, page=page, size=size)
-    return PaginatedResponse[BookingRead](
+    bookings, total = booking_service.get_user_bookings_paginated_with_details(db, user_id, page=page, size=size)
+    return PaginatedResponse[BookingDetailRead](
         data=bookings,
         total=total,
         page=page,

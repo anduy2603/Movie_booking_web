@@ -17,8 +17,9 @@ const MyBookings = () => {
       setLoading(true)
       const resp = await bookingService.getUserBookingsRequest(user.id, page, 10)
       let list = resp.data?.data || []
-      // hydrate seat row/number if missing
-      const missing = list.filter(b => !b.row || !b.number)
+      // Backend đã trả về đầy đủ thông tin (movie_title, theater_name, seat_row, etc.)
+      // Chỉ hydrate seat row/number nếu backend chưa trả về (fallback)
+      const missing = list.filter(b => !b.seat_row || !b.seat_number)
       if (missing.length > 0) {
         const uniqueSeatIds = Array.from(new Set(missing.map(b => b.seat_id)))
         const seatMap = {}
@@ -30,9 +31,10 @@ const MyBookings = () => {
             console.debug('Failed to fetch seat', id, e)
           }
         }))
-        list = list.map(b => (
-          b.row && b.number ? b : { ...b, row: seatMap[b.seat_id]?.row, number: seatMap[b.seat_id]?.number }
-        ))
+        list = list.map(b => {
+          if (b.seat_row && b.seat_number) return b
+          return { ...b, row: seatMap[b.seat_id]?.row || b.seat_row, number: seatMap[b.seat_id]?.number || b.seat_number }
+        })
       }
       setBookings(statusFilter ? list.filter(b => b.status === statusFilter) : list)
       setTotalPages(resp.data?.pages || 1)
@@ -129,7 +131,9 @@ const MyBookings = () => {
           <table className='min-w-full table-auto'>
             <thead className='bg-gray-700'>
               <tr>
+                <th className='px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider'>Movie</th>
                 <th className='px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider'>Showtime</th>
+                <th className='px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider'>Theater & Room</th>
                 <th className='px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider'>Seat</th>
                 <th className='px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider'>Price</th>
                 <th className='px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider'>Status</th>
@@ -139,13 +143,47 @@ const MyBookings = () => {
             <tbody className='divide-y divide-gray-700'>
               {bookings.map(b => (
                 <tr key={b.id} className='hover:bg-gray-700/50'>
-                  <td className='px-6 py-4 text-sm text-gray-300'>
-                    {new Date(b.start_time || b.created_at).toLocaleString()}<br/>
-                    <span className='text-xs text-gray-400'>Showtime #{b.showtime_id}</span>
+                  <td className='px-6 py-4'>
+                    <div className='flex items-center gap-3'>
+                      {b.movie_poster_url && (
+                        <img 
+                          src={b.movie_poster_url} 
+                          alt={b.movie_title || 'Movie'} 
+                          className='w-12 h-16 object-cover rounded'
+                          onError={(e) => { e.target.src = 'https://via.placeholder.com/60x90?text=No+Image'; }}
+                        />
+                      )}
+                      <div>
+                        <div className='text-sm font-medium text-white'>{b.movie_title || 'Unknown Movie'}</div>
+                        <div className='text-xs text-gray-400'>Booking #{b.id}</div>
+                      </div>
+                    </div>
                   </td>
                   <td className='px-6 py-4 text-sm text-gray-300'>
-                    Row {b.row || ''} Seat {b.number || ''}
-                    <span className='text-xs text-gray-500 ml-2'>#{b.seat_id}</span>
+                    {b.start_time ? (
+                      <>
+                        <div className='font-medium'>{new Date(b.start_time).toLocaleDateString('vi-VN')}</div>
+                        <div className='text-xs'>{new Date(b.start_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</div>
+                        {b.end_time && (
+                          <div className='text-xs text-gray-500'>- {new Date(b.end_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</div>
+                        )}
+                      </>
+                    ) : (
+                      <span className='text-gray-500'>N/A</span>
+                    )}
+                  </td>
+                  <td className='px-6 py-4 text-sm text-gray-300'>
+                    <div className='font-medium'>{b.theater_name || 'Unknown Theater'}</div>
+                    {b.room_name && <div className='text-xs text-gray-400'>Room: {b.room_name}</div>}
+                    {b.theater_address && <div className='text-xs text-gray-500'>{b.theater_address}</div>}
+                  </td>
+                  <td className='px-6 py-4 text-sm text-gray-300'>
+                    <div className='font-medium'>
+                      {b.seat_row && b.seat_number ? `Row ${b.seat_row} Seat ${b.seat_number}` : `Seat #${b.seat_id}`}
+                    </div>
+                    {b.row && b.number && (b.row !== b.seat_row || b.number !== b.seat_number) && (
+                      <span className='text-xs text-gray-500'>Row {b.row} Seat {b.number}</span>
+                    )}
                   </td>
                   <td className='px-6 py-4 text-sm text-gray-300'>{b.price?.toLocaleString() || 0} VND</td>
                   <td className='px-6 py-4 text-sm'>

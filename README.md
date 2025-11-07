@@ -22,9 +22,12 @@ Movie Booking System là một dự án cá nhân - ứng dụng web toàn diệ
 - 🔍 Tìm kiếm và lọc phim theo thể loại, ngày phát hành
 - 📅 Chọn ngày và suất chiếu
 - 🪑 Chọn ghế tương tác với giao diện trực quan
-- 💳 Thanh toán và xác nhận vé
+- ✅ **Confirmation step** - Xác nhận trước khi thanh toán
+- 💳 Thanh toán và xác nhận vé (nhiều phương thức: cash, momo, zalopay, visa)
 - ⭐ Thêm/xóa phim vào yêu thích
-- 📝 Xem lịch sử đặt vé
+- 📝 Xem lịch sử đặt vé với **thông tin chi tiết** (phim, rạp, room, ghế)
+- ❌ Hủy và xóa booking (xóa chỉ khi đã hủy)
+- 💰 Thanh toán booking sau (nút "Thanh toán")
 - 👤 Quản lý profile cá nhân
 - 🔐 Đăng nhập/Đăng ký an toàn với JWT
 
@@ -292,11 +295,12 @@ Sau khi server chạy, truy cập:
 #### 🎫 Bookings (`/api/bookings/`)
 - `GET /api/bookings` - Tất cả booking (admin only, có pagination)
 - `GET /api/bookings/{id}` - Chi tiết booking
-- `GET /api/bookings/user/{user_id}` - Booking của user (có pagination)
-- `GET /api/bookings/showtime/{showtime_id}` - Booking theo suất chiếu
-- `POST /api/bookings` - Tạo booking (có thể nhiều ghế)
+- `GET /api/bookings/user/{user_id}` - Booking của user với thông tin chi tiết (phim, rạp, room) - có pagination
+- `GET /api/bookings/showtime/{showtime_id}` - Booking theo suất chiếu (để đánh dấu ghế đã đặt)
+- `POST /api/bookings` - Tạo booking (có thể nhiều ghế cùng lúc)
 - `PUT /api/bookings/{id}/cancel` - Hủy booking
-- `DELETE /api/bookings/{id}` - Xóa booking
+- `DELETE /api/bookings/{id}` - Xóa booking (chỉ khi đã cancelled)
+- `POST /api/bookings/{id}/pay` - Thanh toán booking (tạo payment và link với booking)
 
 #### 💰 Payments (`/api/payments/`)
 - `POST /api/payments` - Tạo thanh toán
@@ -362,7 +366,9 @@ Sau khi chạy `seed_data.py`, bạn có thể đăng nhập với:
 - **schemas/**: Pydantic validation schemas
   - `user_schema.py` - User schemas
   - `movie_schema.py` - Movie schemas
-  - `booking_schema.py` - Booking schemas
+  - `booking_schema.py` - Booking schemas (bao gồm BookingDetailRead)
+  - `showtime_schema.py` - Showtime schemas
+  - `payment_schema.py` - Payment schemas
   - ... và các schemas khác
 
 - **controllers/**: FastAPI route handlers
@@ -374,6 +380,9 @@ Sau khi chạy `seed_data.py`, bạn có thể đăng nhập với:
 - **services/**: Business logic layer
   - Chứa tất cả business logic
   - Không phụ thuộc vào database implementation
+  - `booking_service.py` - Booking logic (với eager loading cho details)
+  - `payment_service.py` - Payment logic
+  - ... và các services khác
 
 - **repositories/**: Data access layer
   - Tương tác trực tiếp với database
@@ -406,10 +415,10 @@ Sau khi chạy `seed_data.py`, bạn có thể đăng nhập với:
 
 - **pages/**: Page components (routes)
   - `Home.jsx` - Trang chủ
-  - `Movies.jsx` - Danh sách phim
-  - `MovieDetails.jsx` - Chi tiết phim
-  - `SeatLayout.jsx` - Chọn ghế
-  - `MyBookings.jsx` - Lịch sử đặt vé
+  - `Movies.jsx` - Danh sách phim (với search và filter)
+  - `MovieDetails.jsx` - Chi tiết phim (với favorite, showtimes)
+  - `SeatLayout.jsx` - Chọn ghế và booking (với confirmation step)
+  - `MyBookings.jsx` - Lịch sử đặt vé với thông tin chi tiết (phim, rạp, room)
   - `Favorite.jsx` - Phim yêu thích
 
 - **contexts/**: React Context providers
@@ -497,6 +506,8 @@ alembic history
 - [Security Settings](./SECURITY_SETTINGS_GUIDE.md) - Cài đặt bảo mật
 - [Server Setup Guide](./server/SETUP.md) - Hướng dẫn setup server
 - [Server Auth Test](./SERVER_AUTH_TEST_GUIDE.md) - Testing authentication
+- [Docker Guide](./DOCKER_GUIDE.md) - Hướng dẫn sử dụng Docker
+- [Project Check Report](./PROJECT_CHECK_REPORT.md) - Báo cáo kiểm tra dự án chi tiết
 
 ## 🐛 Troubleshooting
 
@@ -525,16 +536,18 @@ alembic history
 - [ ] Cải thiện UI/UX với animations
 - [ ] Thêm tính năng đánh giá và review phim
 - [ ] Thêm tính năng thông báo email
-- [ ] Tối ưu performance và caching
+- [ ] Tối ưu performance và caching (Redis)
 - [ ] Thêm support cho mobile app
-- [ ] Production deployment
+- [ ] Production deployment với PostgreSQL
 
 ### Cải thiện kỹ thuật:
 - [ ] Thêm Redis cho caching
 - [ ] Setup CI/CD pipeline
-- [ ] Thêm monitoring và analytics
-- [ ] Cải thiện error handling
-- [ ] Thêm API rate limiting nâng cao
+- [ ] Thêm monitoring và analytics (ELK stack)
+- [ ] Database connection pooling
+- [ ] API rate limiting nâng cao
+- [ ] Image upload thay vì URL
+- [ ] Email service integration
 
 ## 📝 License
 
@@ -554,31 +567,55 @@ Dự án cá nhân được phát triển để học tập và xây dựng port
 
 ## 📊 Tình trạng dự án
 
-Dự án đã hoàn thiện ~95% với đầy đủ các tính năng cốt lõi:
+Dự án đã **hoàn thiện đầy đủ** cho môi trường development với các tính năng cốt lõi:
 
 - ✅ Backend API: 100% hoàn thành
-- ✅ Frontend Core Features: 95% hoàn thành
-- ✅ Admin Dashboard: 90% hoàn thành
+- ✅ Frontend Core Features: 100% hoàn thành
+- ✅ Admin Dashboard: 100% hoàn thành
 - ✅ Authentication: 100% hoàn thành
 - ✅ Database: 100% hoàn thành
+- ✅ Booking System: 100% hoàn thành (bao gồm confirmation step)
+- ✅ Payment System: 100% hoàn thành
+- ✅ MyBookings Enhancement: 100% hoàn thành (hiển thị đầy đủ thông tin)
+
+### ✨ Cải thiện mới nhất:
+
+1. **MyBookings Enhancement** 🎯
+   - Hiển thị đầy đủ thông tin: poster phim, tên phim, rạp chiếu, room, ghế
+   - Eager loading relationships để tối ưu performance
+   - UI được cải thiện với thông tin chi tiết hơn
+
+2. **Booking Confirmation Step** ✅
+   - Modal xác nhận trước khi thanh toán
+   - Hiển thị: showtime, số ghế, danh sách ghế, tổng tiền
+   - Luồng rõ ràng: Chọn ghế → Xác nhận → Thanh toán
+
+3. **Booking Management** 🎫
+   - Cancel booking với validation
+   - Delete booking (chỉ khi đã cancelled)
+   - Thanh toán booking sau (nút "Thanh toán")
+   - Status management (pending → confirmed → cancelled)
 
 **Dự án hiện tại sẵn sàng để:**
 - ✅ Sử dụng trong môi trường development
 - ✅ Demo và presentation
 - ✅ Học tập và thực hành
 - ✅ Portfolio cá nhân
+- ✅ Testing và QA
 
 **Chưa sẵn sàng cho:**
-- ⏳ Production deployment (sẽ thực hiện trong tương lai)
+- ⏳ Production deployment (sẽ thực hiện trong tương lai - cần PostgreSQL, Redis, Monitoring, etc.)
 
 ---
 
 ## ⚠️ Lưu ý quan trọng
 
 - 🔒 **Bảo mật**: Đảm bảo không commit file `.env` vào git. File này chứa thông tin nhạy cảm!
-- 🐛 **Bugs**: Dự án đang trong giai đoạn development, có thể còn một số bugs chưa được phát hiện.
-- 📝 **Documentation**: Tài liệu sẽ được cập nhật thường xuyên khi có thay đổi.
-- 🚀 **Production**: Chưa được tối ưu và test kỹ lưỡng cho production environment.
+- 🐛 **Bugs**: Dự án đã được kiểm tra kỹ lưỡng, nhưng nếu phát hiện bugs, vui lòng báo cáo.
+- 📝 **Documentation**: Tài liệu được cập nhật thường xuyên. Xem `PROJECT_CHECK_REPORT.md` để biết chi tiết.
+- 🚀 **Production**: Chưa được tối ưu và test kỹ lưỡng cho production environment. Cần PostgreSQL, Redis, và monitoring trước khi deploy.
+- 💾 **Database**: Hiện tại dùng SQLite cho development. Production cần PostgreSQL.
+- 🔐 **Security**: UniqueConstraint trong database ngăn trùng ghế. Validation được thực hiện ở cả backend và database level.
 
 ---
 

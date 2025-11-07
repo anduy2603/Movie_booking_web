@@ -19,6 +19,7 @@ const SeatLayout = () => {
   const [seats, setSeats] = useState([])
   const [bookedSeatIds, setBookedSeatIds] = useState(new Set())
   const [selectedSeatIds, setSelectedSeatIds] = useState(new Set())
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
 
   // Step handling is derived: when showtime is null -> choose showtime; else choose seats
@@ -232,6 +233,15 @@ const SeatLayout = () => {
       toast.error('Please select at least one seat')
       return
     }
+    if (!showtime) {
+      toast.error('Please select a showtime')
+      return
+    }
+    setShowConfirmationModal(true)
+  }
+
+  const handleConfirmationConfirm = () => {
+    setShowConfirmationModal(false)
     setShowPaymentModal(true)
   }
 
@@ -394,6 +404,60 @@ const SeatLayout = () => {
             </div>
           </div>
         </>
+      )}
+
+      {/* Confirmation Modal */}
+      {showConfirmationModal && (
+        <div className='fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4'>
+          <div className='bg-gray-800 rounded-xl p-6 max-w-md w-full border border-gray-700 shadow-2xl'>
+            <h2 className='text-2xl font-bold text-white mb-4'>Xác nhận đặt vé</h2>
+            <div className='space-y-3 mb-6'>
+              {showtime && (
+                <>
+                  <div className='flex justify-between text-gray-300'>
+                    <span>Thời gian:</span>
+                    <span className='text-white font-medium'>{formatTime(showtime.start_time)}</span>
+                  </div>
+                  <div className='flex justify-between text-gray-300'>
+                    <span>Số ghế đã chọn:</span>
+                    <span className='text-white font-medium'>{selectedSeatIds.size} ghế</span>
+                  </div>
+                  <div className='flex justify-between text-gray-300'>
+                    <span>Ghế:</span>
+                    <span className='text-white font-medium text-right max-w-[200px]'>
+                      {Array.from(selectedSeatIds)
+                        .map((seatId) => {
+                          const seat = seats.find(s => s.id === seatId)
+                          return seat ? `Row ${seat.row} Seat ${seat.number}` : `Seat #${seatId}`
+                        })
+                        .join(', ')}
+                    </span>
+                  </div>
+                  <div className='border-t border-gray-700 pt-3 mt-3'>
+                    <div className='flex justify-between text-lg'>
+                      <span className='text-gray-300 font-semibold'>Tổng tiền:</span>
+                      <span className='text-[var(--color-primary)] font-bold text-xl'>{totalPrice.toLocaleString()} VND</span>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+            <div className='flex gap-3'>
+              <button
+                onClick={() => setShowConfirmationModal(false)}
+                className='flex-1 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-white transition-colors'
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleConfirmationConfirm}
+                className='flex-1 px-4 py-2 rounded-lg bg-[var(--color-primary)] hover:bg-[var(--color-primary-dull)] text-white font-semibold transition-colors'
+              >
+                Xác nhận
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Payment Modal */}
