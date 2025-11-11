@@ -4,7 +4,8 @@ from typing import List
 
 from app.config.logger import logger
 from app.schemas.room_schema import RoomCreate, RoomRead
-from app.schemas.base_schema import PaginatedResponse, get_pagination_params, PaginationParams
+from app.schemas.base_schema import PaginatedResponse, PaginationParams
+from app.dependencies import get_pagination_params
 from app.config.database import get_db
 from app.services.room_service import RoomService
 from app.repositories.room_repo import RoomRepository

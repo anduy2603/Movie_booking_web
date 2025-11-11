@@ -1,7 +1,6 @@
 from typing import Generic, List, TypeVar, Optional
 from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime
-from fastapi import Query, Depends
 
 # BaseSchema
 class BaseSchema(BaseModel):
@@ -27,11 +26,3 @@ class PaginationParams(BaseModel):
     
     page: int = Field(1, ge=1, description="Current page number")
     size: int = Field(10, ge=1, le=100, description="Number of items per page")
-
-# Dependency function để parse pagination params từ query string
-def get_pagination_params(
-    page: int = Query(1, ge=1, description="Current page number"),
-    size: int = Query(10, ge=1, le=100, description="Number of items per page")
-) -> PaginationParams:
-    """Dependency function để lấy pagination params từ query string"""
-    return PaginationParams(page=page, size=size)

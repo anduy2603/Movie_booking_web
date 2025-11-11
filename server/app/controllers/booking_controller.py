@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.schemas.booking_schema import BookingCreate, BookingRead, BookingDetailRead
-from app.schemas.base_schema import PaginatedResponse, get_pagination_params, PaginationParams
+from app.schemas.base_schema import PaginatedResponse, PaginationParams
+from app.dependencies import get_pagination_params
 from app.config.database import get_db
 from app.services.booking_service import BookingService
 from app.repositories.booking_repo import BookingRepository

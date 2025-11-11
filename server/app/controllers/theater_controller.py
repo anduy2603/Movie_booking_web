@@ -6,7 +6,8 @@ from app.config.database import get_db
 from app.schemas.theater_schema import TheaterCreate, TheaterRead
 from app.services.theater_service import TheaterService
 from app.repositories.theater_repo import TheaterRepository
-from app.schemas.base_schema import PaginatedResponse, get_pagination_params, PaginationParams
+from app.schemas.base_schema import PaginatedResponse, PaginationParams
+from app.dependencies import get_pagination_params
 from app.auth.permissions import requires_role
 
 router = APIRouter(prefix="/theaters", tags=["Theaters"])

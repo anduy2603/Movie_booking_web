@@ -5,7 +5,8 @@ from app.config.database import get_db
 from app.schemas.showtime_schema import ShowtimeCreate, ShowtimeRead, ShowtimeBase
 from app.services.showtime_service import ShowtimeService
 from app.repositories.showtime_repo import ShowtimeRepository
-from app.schemas.base_schema import PaginatedResponse, get_pagination_params, PaginationParams
+from app.schemas.base_schema import PaginatedResponse, PaginationParams
+from app.dependencies import get_pagination_params
 from app.auth.permissions import requires_role
 from pydantic import BaseModel
 

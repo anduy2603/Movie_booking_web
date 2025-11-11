@@ -6,7 +6,8 @@ from app.config.database import get_db
 from app.services.user_service import UserService
 from app.repositories.user_repo import UserRepository
 from app.schemas.user_schema import UserCreate, UserRead, UserUpdate
-from app.schemas.base_schema import PaginatedResponse, get_pagination_params, PaginationParams
+from app.schemas.base_schema import PaginatedResponse, PaginationParams
+from app.dependencies import get_pagination_params
 from app.config import logger
 from app.models.user import User
 from app.auth.permissions import get_current_user, requires_role
