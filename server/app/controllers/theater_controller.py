@@ -6,7 +6,7 @@ from app.config.database import get_db
 from app.schemas.theater_schema import TheaterCreate, TheaterRead
 from app.services.theater_service import TheaterService
 from app.repositories.theater_repo import TheaterRepository
-from app.schemas.base_schema import PaginatedResponse
+from app.schemas.base_schema import PaginatedResponse, get_pagination_params, PaginationParams
 from app.auth.permissions import requires_role
 
 router = APIRouter(prefix="/theaters", tags=["Theaters"])
@@ -16,18 +16,17 @@ theater_service = TheaterService(TheaterRepository())
 @router.get("/", response_model=PaginatedResponse[TheaterRead])
 def get_theaters(
     db: Session = Depends(get_db),
-    page: int = Query(1, ge=1),
-    size: int = Query(10, ge=1)
+    pagination: PaginationParams = Depends(get_pagination_params)
 ):
-    skip = (page - 1) * size
-    theaters = theater_service.get_all(db, skip=skip, limit=size)
+    skip = (pagination.page - 1) * pagination.size
+    theaters = theater_service.get_all(db, skip=skip, limit=pagination.size)
     total = theater_service.repository.count(db)
-    pages = (total + size - 1) // size
+    pages = (total + pagination.size - 1) // pagination.size
     return PaginatedResponse(
         data=theaters,
         total=total,
-        page=page,
-        size=size,
+        page=pagination.page,
+        size=pagination.size,
         pages=pages
     )
 

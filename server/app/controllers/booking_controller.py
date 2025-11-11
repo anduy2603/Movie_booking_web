@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.schemas.booking_schema import BookingCreate, BookingRead, BookingDetailRead
-from app.schemas.base_schema import PaginatedResponse
+from app.schemas.base_schema import PaginatedResponse, get_pagination_params, PaginationParams
 from app.config.database import get_db
 from app.services.booking_service import BookingService
 from app.repositories.booking_repo import BookingRepository
@@ -17,16 +17,15 @@ booking_service = BookingService(BookingRepository())
 @router.get("/", response_model=PaginatedResponse[BookingRead], dependencies=[Depends(requires_role("admin"))])
 def list_bookings(
     db: Session = Depends(get_db),
-    page: int = Query(1, ge=1, description="Current page number"),
-    size: int = Query(10, ge=1, le=100, description="Number of items per page"),
+    pagination: PaginationParams = Depends(get_pagination_params),
 ):
-    bookings, total = booking_service.get_bookings_paginated(db, page=page, size=size)
+    bookings, total = booking_service.get_bookings_paginated(db, page=pagination.page, size=pagination.size)
     return PaginatedResponse[BookingRead](
         data=bookings,
         total=total,
-        page=page,
-        size=size,
-        pages=(total + size - 1) // size
+        page=pagination.page,
+        size=pagination.size,
+        pages=(total + pagination.size - 1) // pagination.size
     )
 
 # -------------------- GET BOOKING BY ID --------------------
@@ -52,20 +51,19 @@ def get_user_bookings(
     user_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-    page: int = Query(1, ge=1),
-    size: int = Query(10, ge=1, le=100),
+    pagination: PaginationParams = Depends(get_pagination_params),
 ):
     # Admin có thể xem booking của bất kỳ user nào, user chỉ xem booking của mình
     if current_user.role != "admin" and current_user.id != user_id:
         raise HTTPException(status_code=403, detail="Forbidden: You can only view your own bookings")
     
-    bookings, total = booking_service.get_user_bookings_paginated_with_details(db, user_id, page=page, size=size)
+    bookings, total = booking_service.get_user_bookings_paginated_with_details(db, user_id, page=pagination.page, size=pagination.size)
     return PaginatedResponse[BookingDetailRead](
         data=bookings,
         total=total,
-        page=page,
-        size=size,
-        pages=(total + size - 1) // size
+        page=pagination.page,
+        size=pagination.size,
+        pages=(total + pagination.size - 1) // pagination.size
     )
 
 # -------------------- CREATE BOOKING --------------------

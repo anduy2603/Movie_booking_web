@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from app.schemas.movie_schema import MovieCreate, MovieRead, MovieBase
-from app.schemas.base_schema import PaginatedResponse
+from app.schemas.base_schema import PaginatedResponse, get_pagination_params, PaginationParams
 from app.config.database import get_db
 from app.services.movie_service import MovieService
 from app.repositories.movie_repo import MovieRepository
@@ -15,23 +15,22 @@ movie_service = MovieService(MovieRepository())
 @router.get("/", response_model=PaginatedResponse[MovieRead])
 def get_all_movies(
     db: Session = Depends(get_db), 
-    page: int = Query(1, ge=1, description="Current page number"),
-    size: int = Query(10, ge=1, le=100, description="Number of items per page"),
+    pagination: PaginationParams = Depends(get_pagination_params),
     search: Optional[str] = Query(None, description="Search query for title, description, or genre"),
     ):
     
     # Nếu có search query, tìm kiếm; nếu không, lấy danh sách bình thường
     if search:
-        movies, total = movie_service.search_movies(db, search, page=page, size=size)
+        movies, total = movie_service.search_movies(db, search, page=pagination.page, size=pagination.size)
     else:
-        movies, total = movie_service.get_movies_paginated(db, page=page, size=size)
+        movies, total = movie_service.get_movies_paginated(db, page=pagination.page, size=pagination.size)
     
     return PaginatedResponse[MovieRead](
         data=movies,
         total=total,
-        page=page,
-        size=size,
-        pages=(total + size - 1) // size  # tính tổng số trang
+        page=pagination.page,
+        size=pagination.size,
+        pages=(total + pagination.size - 1) // pagination.size  # tính tổng số trang
     )
     
 

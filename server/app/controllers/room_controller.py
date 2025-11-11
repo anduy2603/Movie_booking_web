@@ -4,7 +4,7 @@ from typing import List
 
 from app.config.logger import logger
 from app.schemas.room_schema import RoomCreate, RoomRead
-from app.schemas.base_schema import PaginatedResponse
+from app.schemas.base_schema import PaginatedResponse, get_pagination_params, PaginationParams
 from app.config.database import get_db
 from app.services.room_service import RoomService
 from app.repositories.room_repo import RoomRepository
@@ -18,17 +18,16 @@ room_service = RoomService(RoomRepository())
 @router.get("/", response_model=PaginatedResponse[RoomRead])
 def list_rooms(
     db: Session = Depends(get_db),
-    page: int = Query(1, ge=1, description="Current page number"),
-    size: int = Query(10, ge=1, le=100, description="Number of items per page")
+    pagination: PaginationParams = Depends(get_pagination_params)
 ):
-    logger.info(f"GET /rooms called: page={page}, size={size}")
-    rooms, total = room_service.get_rooms_paginated(db, page=page, size=size)
+    logger.info(f"GET /rooms called: page={pagination.page}, size={pagination.size}")
+    rooms, total = room_service.get_rooms_paginated(db, page=pagination.page, size=pagination.size)
     return PaginatedResponse[RoomRead](
         data=rooms,
         total=total,
-        page=page,
-        size=size,
-        pages=(total + size - 1) // size
+        page=pagination.page,
+        size=pagination.size,
+        pages=(total + pagination.size - 1) // pagination.size
     )
 
 # -------------------- GET ROOMS BY THEATER (PAGINATED) --------------------
@@ -36,17 +35,16 @@ def list_rooms(
 def list_rooms_by_theater(
     theater_id: int,
     db: Session = Depends(get_db),
-    page: int = Query(1, ge=1),
-    size: int = Query(10, ge=1, le=100)
+    pagination: PaginationParams = Depends(get_pagination_params)
 ):
-    logger.info(f"GET /rooms/theater/{theater_id} called: page={page}, size={size}")
-    rooms, total = room_service.get_rooms_by_theater_paginated(db, theater_id, page=page, size=size)
+    logger.info(f"GET /rooms/theater/{theater_id} called: page={pagination.page}, size={pagination.size}")
+    rooms, total = room_service.get_rooms_by_theater_paginated(db, theater_id, page=pagination.page, size=pagination.size)
     return PaginatedResponse[RoomRead](
         data=rooms,
         total=total,
-        page=page,
-        size=size,
-        pages=(total + size - 1) // size
+        page=pagination.page,
+        size=pagination.size,
+        pages=(total + pagination.size - 1) // pagination.size
     )
 
 # -------------------- GET ROOM BY ID --------------------

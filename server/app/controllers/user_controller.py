@@ -6,7 +6,7 @@ from app.config.database import get_db
 from app.services.user_service import UserService
 from app.repositories.user_repo import UserRepository
 from app.schemas.user_schema import UserCreate, UserRead, UserUpdate
-from app.schemas.base_schema import PaginatedResponse
+from app.schemas.base_schema import PaginatedResponse, get_pagination_params, PaginationParams
 from app.config import logger
 from app.models.user import User
 from app.auth.permissions import get_current_user, requires_role
@@ -30,12 +30,15 @@ def create_user(user_in: UserCreate, db: Session = Depends(get_db)):
     return user_service.create(db, user_in)
 
 @router.get("/", response_model=PaginatedResponse[UserRead], dependencies=[Depends(requires_role("admin"))])
-def get_users(page: int = 1, size: int = 10, db: Session = Depends(get_db)):
-    skip = (page - 1) * size
-    users, total = user_service.get_all_paginated(db, skip=skip, limit=size)
-    pages = (total + size - 1) // size
+def get_users(
+    pagination: PaginationParams = Depends(get_pagination_params),
+    db: Session = Depends(get_db)
+):
+    skip = (pagination.page - 1) * pagination.size
+    users, total = user_service.get_all_paginated(db, skip=skip, limit=pagination.size)
+    pages = (total + pagination.size - 1) // pagination.size
     return PaginatedResponse[UserRead](
-        data=users, total=total, page=page, size=size, pages=pages
+        data=users, total=total, page=pagination.page, size=pagination.size, pages=pages
     )
 
 @router.get("/{user_id}", response_model=UserRead, dependencies=[Depends(requires_role("admin"))])

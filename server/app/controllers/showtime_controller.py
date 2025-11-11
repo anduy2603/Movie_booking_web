@@ -5,7 +5,7 @@ from app.config.database import get_db
 from app.schemas.showtime_schema import ShowtimeCreate, ShowtimeRead, ShowtimeBase
 from app.services.showtime_service import ShowtimeService
 from app.repositories.showtime_repo import ShowtimeRepository
-from app.schemas.base_schema import PaginatedResponse
+from app.schemas.base_schema import PaginatedResponse, get_pagination_params, PaginationParams
 from app.auth.permissions import requires_role
 from pydantic import BaseModel
 
@@ -23,16 +23,15 @@ def create_showtime(showtime_in: ShowtimeCreate, db: Session = Depends(get_db)):
 @router.get("/", response_model=PaginatedResponse[ShowtimeRead])
 def get_all_showtimes(
     db: Session = Depends(get_db),
-    page: int = Query(1, ge=1),
-    size: int = Query(10, ge=1, le=100),
+    pagination: PaginationParams = Depends(get_pagination_params),
 ):
-    showtimes, total = showtime_service.get_paginated(db, page, size)
+    showtimes, total = showtime_service.get_paginated(db, pagination.page, pagination.size)
     return PaginatedResponse(
         data=showtimes,
         total=total,
-        page=page,
-        size=size,
-        pages=(total + size - 1) // size
+        page=pagination.page,
+        size=pagination.size,
+        pages=(total + pagination.size - 1) // pagination.size
     )
 
 
@@ -50,16 +49,15 @@ def get_showtime(showtime_id: int, db: Session = Depends(get_db)):
 def get_showtimes_by_movie(
     movie_id: int,
     db: Session = Depends(get_db),
-    page: int = Query(1, ge=1),
-    size: int = Query(10, ge=1, le=100),
+    pagination: PaginationParams = Depends(get_pagination_params),
 ):
-    showtimes, total = showtime_service.get_paginated_by_movie(db, movie_id, page, size)
+    showtimes, total = showtime_service.get_paginated_by_movie(db, movie_id, pagination.page, pagination.size)
     return PaginatedResponse(
         data=showtimes,
         total=total,
-        page=page,
-        size=size,
-        pages=(total + size - 1) // size
+        page=pagination.page,
+        size=pagination.size,
+        pages=(total + pagination.size - 1) // pagination.size
     )
 
 
