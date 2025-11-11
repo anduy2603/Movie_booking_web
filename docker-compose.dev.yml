@@ -36,9 +36,9 @@ services:
       - ./client:/app
       # Anonymous volume để giữ node_modules trong container, tránh conflict với Windows
       - /app/node_modules
-    environment:
-      - VITE_API_BASE_URL=http://localhost:8000
-      - NODE_ENV=development
+    # environment:
+    #   - VITE_API_BASE_URL=http://localhost:8000
+    #   - NODE_ENV=development
     # Entrypoint script handles clean install automatically
     restart: unless-stopped
     networks:

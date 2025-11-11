@@ -27,6 +27,8 @@ coverage/
 # ---- Environment files ----
 .env
 .env.*
+!.env.example
+!**/.env.example
 
 # ---- Alembic ----
 alembic/__pycache__/
