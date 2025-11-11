@@ -1,7 +1,13 @@
 # Script to create .env file from .example.env
 # Run this script to automatically create .env with secure random keys
+# Chạy: .\scripts\command\create-env.ps1 (từ thư mục server/)
 
 Write-Host "🎬 Creating .env file for Movie Booking API..." -ForegroundColor Green
+
+# Chuyển về thư mục server nếu đang ở scripts/command/
+$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+$serverDir = Split-Path -Parent (Split-Path -Parent $scriptPath)
+Set-Location $serverDir
 
 # Check if .env already exists
 if (Test-Path ".env") {

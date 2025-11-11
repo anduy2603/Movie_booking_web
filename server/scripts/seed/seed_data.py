@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Script để tạo dữ liệu mẫu cho Movie Booking API
-Chạy: python seed_data.py
+Chạy: python scripts/seed/seed_data.py (từ thư mục server/)
 """
 
 import sys
@@ -9,8 +9,10 @@ import os
 from datetime import datetime, timedelta, date
 from sqlalchemy.orm import Session
 
-# Thêm path để import app
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# Thêm path để import app (từ scripts/seed/ lên server/)
+script_dir = os.path.dirname(os.path.abspath(__file__))
+server_dir = os.path.dirname(os.path.dirname(script_dir))
+sys.path.insert(0, server_dir)
 
 from app.config.database import get_db, engine
 from app.models import Base, User, Movie, Theater, Room, Seat, Showtime, Booking, Payment
@@ -221,3 +223,4 @@ def create_sample_data():
 
 if __name__ == "__main__":
     create_sample_data()
+

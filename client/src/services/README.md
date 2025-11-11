@@ -115,8 +115,8 @@ VITE_API_BASE_URL=http://localhost:8000
 ```
 
 ## Testing
-Use the backend test script `server/test_api.py` to test API endpoints:
+Use the backend test script `server/scripts/command/test_api.py` to test API endpoints:
 ```bash
 cd server
-python test_api.py
+python scripts/command/test_api.py
 ```

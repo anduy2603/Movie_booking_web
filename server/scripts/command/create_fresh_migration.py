@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 Script để tạo migration mới từ đầu dựa trên models hiện tại
+Chạy: python scripts/command/create_fresh_migration.py (từ thư mục server/)
 """
 import subprocess
 import sys
@@ -31,7 +32,13 @@ def main():
     print("🔄 Creating Fresh Alembic Migration")
     print("="*60)
     
-    # Kiểm tra xem đang ở đúng thư mục chưa
+    # Kiểm tra xem đang ở đúng thư mục chưa (server/)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    server_dir = os.path.dirname(os.path.dirname(script_dir))
+    
+    # Chuyển về thư mục server để chạy alembic
+    os.chdir(server_dir)
+    
     if not os.path.exists("alembic.ini"):
         print("❌ Error: alembic.ini not found!")
         print("   Please run this script from the server directory.")

@@ -153,11 +153,11 @@ cd server
 cp .example.env .env
 
 # Hoặc chạy script tự động (PowerShell)
-./create-env.ps1
+.\scripts\command\create-env.ps1
 
 # Hoặc (Linux/Mac)
-chmod +x create-env.sh
-./create-env.sh
+chmod +x scripts/command/create-env.sh
+./scripts/command/create-env.sh
 ```
 
 #### 3. Sinh khóa bảo mật (cho development)
@@ -238,7 +238,7 @@ cp .example.env .env
 alembic upgrade head
 
 # Tạo dữ liệu mẫu (tùy chọn)
-python seed_data.py
+python scripts/seed/seed_data.py
 
 # Chạy server
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
@@ -362,7 +362,7 @@ Hệ thống có các tính năng bảo mật:
 
 ## 👤 Tài khoản mặc định
 
-Sau khi chạy `seed_data.py`, bạn có thể đăng nhập với:
+Sau khi chạy `scripts/seed/seed_data.py`, bạn có thể đăng nhập với:
 
 **Admin:**
 - Email: `admin@moviebooking.com`
@@ -467,7 +467,7 @@ Sau khi chạy `seed_data.py`, bạn có thể đăng nhập với:
 ### Backend API Testing
 ```bash
 cd server
-python test_api.py
+python scripts/command/test_api.py
 ```
 
 ### Test với Swagger UI
@@ -552,7 +552,7 @@ alembic history
 ### Lỗi migration
 - Kiểm tra version của Alembic: `alembic current`
 - Xem lịch sử: `alembic history`
-- Reset nếu cần: Xem `server/reset_alembic.ps1`
+- Reset nếu cần: Chạy `.\scripts\command\reset_alembic.ps1` (từ thư mục server/)
 
 ### Lỗi Docker - npm ci
 - **Nguyên nhân**: Thiếu file `package-lock.json`

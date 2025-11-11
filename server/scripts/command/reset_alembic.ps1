@@ -1,8 +1,14 @@
 # PowerShell script để reset Alembic migration
 # Chạy script này để reset và tạo migration mới từ đầu
+# Chạy: .\scripts\command\reset_alembic.ps1 (từ thư mục server/)
 
 Write-Host "🔄 Reset Alembic Migration Script" -ForegroundColor Cyan
 Write-Host ""
+
+# Chuyển về thư mục server nếu đang ở scripts/command/
+$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+$serverDir = Split-Path -Parent (Split-Path -Parent $scriptPath)
+Set-Location $serverDir
 
 # Bước 1: Backup database
 $backupName = "movie_booking_backup_$(Get-Date -Format 'yyyyMMdd_HHmmss').db"

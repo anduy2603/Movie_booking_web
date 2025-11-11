@@ -1,8 +1,14 @@
 #!/bin/bash
 # Script to create .env file from .example.env
 # Run this script to automatically create .env with secure random keys
+# Chạy: ./scripts/command/create-env.sh (từ thư mục server/)
 
 echo "🎬 Creating .env file for Movie Booking API..."
+
+# Chuyển về thư mục server nếu đang ở scripts/command/
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SERVER_DIR="$(dirname "$(dirname "$SCRIPT_DIR")")"
+cd "$SERVER_DIR" || exit 1
 
 # Check if .env already exists
 if [ -f ".env" ]; then

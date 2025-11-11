@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Script test tự động cho Movie Booking API
-Chạy: python test_api.py
+Chạy: python scripts/command/test_api.py (từ thư mục server/)
 """
 
 import requests
@@ -249,3 +249,4 @@ class MovieBookingAPITester:
 if __name__ == "__main__":
     tester = MovieBookingAPITester()
     tester.run_all_tests()
+
