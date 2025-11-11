@@ -78,29 +78,8 @@ class BookingService(BaseService[Booking, BookingCreate, BookingUpdate]):
 
     def get_user_bookings_paginated_with_details(self, db: Session, user_id: int, page: int, size: int) -> Tuple[List, int]:
         """Lấy danh sách booking của user có phân trang với thông tin chi tiết (showtime, movie, theater)"""
-        from sqlalchemy.orm import selectinload
-        from app.models.showtime import Showtime
-        from app.models.movie import Movie
-        from app.models.room import Room
-        from app.models.theater import Theater
-        from app.models.seat import Seat
-        
         offset = (page - 1) * size
-        # Load bookings với relationships
-        bookings = (
-            db.query(Booking)
-            .options(
-                selectinload(Booking.showtime).selectinload(Showtime.movie),
-                selectinload(Booking.showtime).selectinload(Showtime.room).selectinload(Room.theater),
-                selectinload(Booking.seat)
-            )
-            .filter(Booking.user_id == user_id)
-            .order_by(Booking.id.desc())
-            .offset(offset)
-            .limit(size)
-            .all()
-        )
-        
+        bookings = self.repository.get_paginated_by_user_with_details(db, user_id, offset=offset, limit=size)
         total = self.repository.count_by_user(db, user_id)
         
         # Transform to BookingDetailRead
