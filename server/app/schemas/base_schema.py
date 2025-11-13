@@ -26,3 +26,33 @@ class PaginationParams(BaseModel):
     
     page: int = Field(1, ge=1, description="Current page number")
     size: int = Field(10, ge=1, le=100, description="Number of items per page")
+
+# Helper function để tạo PaginatedResponse từ data, total và pagination
+def create_paginated_response(
+    data: List[T],
+    total: int,
+    pagination: PaginationParams
+) -> PaginatedResponse[T]:
+    """
+    Helper function để tạo PaginatedResponse, tự động tính pages và lấy page/size từ pagination.
+    
+    Sử dụng trong controllers:
+        return create_paginated_response(items, total, pagination)
+    
+    Thay vì:
+        return PaginatedResponse[T](
+            data=items,
+            total=total,
+            page=pagination.page,
+            size=pagination.size,
+            pages=(total + pagination.size - 1) // pagination.size
+        )
+    """
+    pages = (total + pagination.size - 1) // pagination.size if pagination.size > 0 else 0
+    return PaginatedResponse[T](
+        data=data,
+        total=total,
+        page=pagination.page,
+        size=pagination.size,
+        pages=pages
+    )

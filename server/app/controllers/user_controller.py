@@ -6,7 +6,7 @@ from app.config.database import get_db
 from app.services.user_service import UserService
 from app.repositories.user_repo import UserRepository
 from app.schemas.user_schema import UserCreate, UserRead, UserUpdate
-from app.schemas.base_schema import PaginatedResponse, PaginationParams
+from app.schemas.base_schema import PaginatedResponse, PaginationParams, create_paginated_response
 from app.dependencies import get_pagination_params
 from app.config import logger
 from app.models.user import User
@@ -37,10 +37,7 @@ def get_users(
 ):
     skip = (pagination.page - 1) * pagination.size
     users, total = user_service.get_all_paginated(db, skip=skip, limit=pagination.size)
-    pages = (total + pagination.size - 1) // pagination.size
-    return PaginatedResponse[UserRead](
-        data=users, total=total, page=pagination.page, size=pagination.size, pages=pages
-    )
+    return create_paginated_response(users, total, pagination)
 
 @router.get("/{user_id}", response_model=UserRead, dependencies=[Depends(requires_role("admin"))])
 def get_user_by_id(user_id: int, db: Session = Depends(get_db)):

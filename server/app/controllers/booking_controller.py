@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.schemas.booking_schema import BookingCreate, BookingRead, BookingDetailRead
-from app.schemas.base_schema import PaginatedResponse, PaginationParams
+from app.schemas.base_schema import PaginatedResponse, PaginationParams, create_paginated_response
 from app.dependencies import get_pagination_params
 from app.config.database import get_db
 from app.services.booking_service import BookingService
@@ -21,13 +21,7 @@ def list_bookings(
     pagination: PaginationParams = Depends(get_pagination_params),
 ):
     bookings, total = booking_service.get_bookings_paginated(db, page=pagination.page, size=pagination.size)
-    return PaginatedResponse[BookingRead](
-        data=bookings,
-        total=total,
-        page=pagination.page,
-        size=pagination.size,
-        pages=(total + pagination.size - 1) // pagination.size
-    )
+    return create_paginated_response(bookings, total, pagination)
 
 # -------------------- GET BOOKING BY ID --------------------
 @router.get("/{booking_id}", response_model=BookingRead)
@@ -59,13 +53,7 @@ def get_user_bookings(
         raise HTTPException(status_code=403, detail="Forbidden: You can only view your own bookings")
     
     bookings, total = booking_service.get_user_bookings_paginated_with_details(db, user_id, page=pagination.page, size=pagination.size)
-    return PaginatedResponse[BookingDetailRead](
-        data=bookings,
-        total=total,
-        page=pagination.page,
-        size=pagination.size,
-        pages=(total + pagination.size - 1) // pagination.size
-    )
+    return create_paginated_response(bookings, total, pagination)
 
 # -------------------- CREATE BOOKING --------------------
 @router.post("/", response_model=List[BookingRead], status_code=status.HTTP_201_CREATED)

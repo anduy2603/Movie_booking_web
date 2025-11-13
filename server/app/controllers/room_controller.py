@@ -4,7 +4,7 @@ from typing import List
 
 from app.config.logger import logger
 from app.schemas.room_schema import RoomCreate, RoomRead
-from app.schemas.base_schema import PaginatedResponse, PaginationParams
+from app.schemas.base_schema import PaginatedResponse, PaginationParams, create_paginated_response
 from app.dependencies import get_pagination_params
 from app.config.database import get_db
 from app.services.room_service import RoomService
@@ -23,13 +23,7 @@ def list_rooms(
 ):
     logger.info(f"GET /rooms called: page={pagination.page}, size={pagination.size}")
     rooms, total = room_service.get_rooms_paginated(db, page=pagination.page, size=pagination.size)
-    return PaginatedResponse[RoomRead](
-        data=rooms,
-        total=total,
-        page=pagination.page,
-        size=pagination.size,
-        pages=(total + pagination.size - 1) // pagination.size
-    )
+    return create_paginated_response(rooms, total, pagination)
 
 # -------------------- GET ROOMS BY THEATER (PAGINATED) --------------------
 @router.get("/theater/{theater_id}", response_model=PaginatedResponse[RoomRead])
@@ -40,13 +34,7 @@ def list_rooms_by_theater(
 ):
     logger.info(f"GET /rooms/theater/{theater_id} called: page={pagination.page}, size={pagination.size}")
     rooms, total = room_service.get_rooms_by_theater_paginated(db, theater_id, page=pagination.page, size=pagination.size)
-    return PaginatedResponse[RoomRead](
-        data=rooms,
-        total=total,
-        page=pagination.page,
-        size=pagination.size,
-        pages=(total + pagination.size - 1) // pagination.size
-    )
+    return create_paginated_response(rooms, total, pagination)
 
 # -------------------- GET ROOM BY ID --------------------
 @router.get("/{room_id}", response_model=RoomRead)

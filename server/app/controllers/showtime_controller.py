@@ -5,7 +5,7 @@ from app.config.database import get_db
 from app.schemas.showtime_schema import ShowtimeCreate, ShowtimeRead, ShowtimeBase
 from app.services.showtime_service import ShowtimeService
 from app.repositories.showtime_repo import ShowtimeRepository
-from app.schemas.base_schema import PaginatedResponse, PaginationParams
+from app.schemas.base_schema import PaginatedResponse, PaginationParams, create_paginated_response
 from app.dependencies import get_pagination_params
 from app.auth.permissions import requires_role
 from pydantic import BaseModel
@@ -27,13 +27,7 @@ def get_all_showtimes(
     pagination: PaginationParams = Depends(get_pagination_params),
 ):
     showtimes, total = showtime_service.get_paginated(db, pagination.page, pagination.size)
-    return PaginatedResponse(
-        data=showtimes,
-        total=total,
-        page=pagination.page,
-        size=pagination.size,
-        pages=(total + pagination.size - 1) // pagination.size
-    )
+    return create_paginated_response(showtimes, total, pagination)
 
 
 # -------------------- GET BY ID --------------------
@@ -53,13 +47,7 @@ def get_showtimes_by_movie(
     pagination: PaginationParams = Depends(get_pagination_params),
 ):
     showtimes, total = showtime_service.get_paginated_by_movie(db, movie_id, pagination.page, pagination.size)
-    return PaginatedResponse(
-        data=showtimes,
-        total=total,
-        page=pagination.page,
-        size=pagination.size,
-        pages=(total + pagination.size - 1) // pagination.size
-    )
+    return create_paginated_response(showtimes, total, pagination)
 
 
 # -------------------- UPDATE --------------------
