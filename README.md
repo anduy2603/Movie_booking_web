@@ -160,7 +160,27 @@ chmod +x scripts/command/create-env.sh
 ./scripts/command/create-env.sh
 ```
 
-#### 3. Sinh khóa bảo mật (cho development)
+#### 3. Thiết lập môi trường Frontend
+```bash
+cd client
+
+# Copy file môi trường
+cp .env.example .env
+
+# Hoặc chạy script tự động (PowerShell)
+.\scripts\create-env.ps1
+
+# Hoặc (Linux/Mac)
+chmod +x scripts/create-env.sh
+./scripts/create-env.sh
+
+# Hoặc tạo file .env thủ công với nội dung:
+# VITE_API_BASE_URL=http://localhost:8000
+```
+
+> 💡 **Lưu ý**: File `.env.example` trong thư mục `client/` chứa cấu hình mẫu cho API base URL. Nếu không có file này, script sẽ tự động tạo file `.env` với giá trị mặc định `VITE_API_BASE_URL=http://localhost:8000`.
+
+#### 4. Sinh khóa bảo mật (cho development)
 
 **Windows (PowerShell):**
 ```powershell
@@ -179,7 +199,7 @@ Chỉnh sửa file `server/.env` và cập nhật:
 - `ENVIRONMENT=development` - Đảm bảo đặt môi trường là development
 - `DEBUG=true` - Bật debug mode cho development
 
-#### 4. Chạy toàn bộ hệ thống
+#### 5. Chạy toàn bộ hệ thống
 
 **Development Mode (Hot Reload - Khuyến nghị):**
 ```bash
@@ -249,6 +269,19 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```bash
 cd client
 
+# Tạo file môi trường
+cp .env.example .env
+
+# Hoặc chạy script tự động (PowerShell)
+.\scripts\create-env.ps1
+
+# Hoặc (Linux/Mac)
+chmod +x scripts/create-env.sh
+./scripts/create-env.sh
+
+# Hoặc tạo file .env thủ công với nội dung:
+# VITE_API_BASE_URL=http://localhost:8000
+
 # Cài đặt dependencies (sẽ tạo package-lock.json)
 npm install --legacy-peer-deps
 
@@ -258,7 +291,9 @@ npm run dev
 
 Frontend sẽ chạy tại: http://localhost:5173
 
-> 💡 **Lưu ý**: Nên commit file `package-lock.json` vào git để đảm bảo consistency khi build Docker.
+> 💡 **Lưu ý**: 
+> - Nên commit file `package-lock.json` vào git để đảm bảo consistency khi build Docker.
+> - File `.env` trong thư mục `client/` cần được tạo từ `.env.example` để cấu hình API base URL. Script `create-env.ps1` hoặc `create-env.sh` sẽ tự động tạo file `.env` nếu không có `.env.example`.
 
 ## 📚 API Documentation
 
