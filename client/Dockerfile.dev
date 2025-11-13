@@ -17,9 +17,10 @@ RUN ls -la node_modules/@rollup/ 2>/dev/null || echo "No @rollup directory" && \
         npm install --save-optional @rollup/rollup-linux-x64-gnu --legacy-peer-deps --force; \
     fi
 
-# Copy entrypoint script
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+# Copy entrypoint script and ensure it has correct line endings and permissions
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh && \
+    sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh || true
 
 # Copy source code
 COPY . .
@@ -27,4 +28,4 @@ COPY . .
 EXPOSE 5173
 
 # Use entrypoint script to verify and fix dependencies if needed
-ENTRYPOINT ["docker-entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
