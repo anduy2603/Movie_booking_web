@@ -40,6 +40,22 @@ class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     avatar_url: Optional[str] = None
     is_active: Optional[bool] = None
+    role: Optional[str] = None
+    password: Optional[str] = None
+    confirm_password: Optional[str] = None
+
+    @validator('password')
+    def validate_update_password(cls, v):
+        if v is not None and len(v) < 8:
+            raise ValueError('Password must be at least 8 characters long')
+        return v
+
+    @validator('confirm_password')
+    def update_passwords_match(cls, v, values, **kwargs):
+        password = values.get('password')
+        if v is not None and password is not None and v != password:
+            raise ValueError('Passwords do not match')
+        return v
 
 # ------------------- Password Change -------------------
 class PasswordChange(BaseModel):

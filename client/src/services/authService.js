@@ -17,10 +17,11 @@ export const updateProfileRequest = (userData) => {
   return api.put('/auth/me', userData);
 };
 
-export const changePasswordRequest = (currentPassword, newPassword) => {
+export const changePasswordRequest = (currentPassword, newPassword, confirmPassword = newPassword) => {
   return api.post('/auth/change-password', {
     current_password: currentPassword,
     new_password: newPassword,
+    confirm_password: confirmPassword,
   });
 };
 

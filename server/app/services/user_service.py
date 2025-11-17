@@ -1,15 +1,16 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import select
 from typing import List, Optional
 from datetime import datetime
+from fastapi import HTTPException, status
 
 from app.models.user import User
 from app.services.base_service import BaseService
 from app.repositories.user_repo import UserRepository
-from app.schemas.user_schema import UserCreate, UserRead
+from app.schemas.user_schema import UserCreate, UserRead, UserUpdate
 from app.config.logger import logger
+from app.auth.jwt_auth import get_password_hash
 
-class UserService(BaseService[User, UserCreate, UserCreate]):
+class UserService(BaseService[User, UserCreate, UserUpdate]):
     def __init__(self, repo: Optional[UserRepository] = None):
         super().__init__(repository=repo or UserRepository(), service_name="UserService")
 
@@ -31,15 +32,30 @@ class UserService(BaseService[User, UserCreate, UserCreate]):
     def get_by_id(self, db: Session, user_id: int) -> Optional[User]:
         return self.repository.get_by_id(db, user_id)
 
-    def update(self, db: Session, user_id: int, user_in: UserCreate) -> Optional[User]:
+    def update(self, db: Session, user_id: int, user_in: UserUpdate) -> Optional[User]:
         user = db.get(User, user_id)
         if not user:
             return None
 
-        # Chỉ update field client gửi, không ghi đè created_at
-        for key, value in user_in.dict(exclude_unset=True).items():
-            if key != "created_at":
-                setattr(user, key, value)
+        update_data = user_in.dict(exclude_unset=True)
+
+        # Handle password update securely
+        new_password = update_data.pop("password", None)
+        confirm_password = update_data.pop("confirm_password", None)
+        if new_password:
+            if confirm_password and new_password != confirm_password:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Passwords do not match",
+                )
+            update_data["hashed_password"] = get_password_hash(new_password)
+
+        # Prevent direct updates to protected fields
+        protected_fields = {"id", "created_at", "updated_at"}
+        for key, value in update_data.items():
+            if key in protected_fields:
+                continue
+            setattr(user, key, value)
 
         user.updated_at = datetime.utcnow()
         db.commit()

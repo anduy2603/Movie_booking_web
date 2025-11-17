@@ -141,9 +141,13 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const changePassword = async (currentPassword, newPassword) => {
+  const changePassword = async (currentPassword, newPassword, confirmPassword) => {
     try {
-      await authService.changePasswordRequest(currentPassword, newPassword);
+      await authService.changePasswordRequest(
+        currentPassword,
+        newPassword,
+        confirmPassword ?? newPassword
+      );
       toast.success('Đổi mật khẩu thành công!');
       return { success: true };
     } catch (error) {

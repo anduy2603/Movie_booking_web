@@ -11,7 +11,6 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
   timeout: 10000, // 10 seconds timeout
-  withCredentials: true, // Enable sending cookies
 });
 
 // Helper function to suppress toast for specific requests
@@ -25,22 +24,17 @@ api.interceptors.request.use(
   async (config) => {
     try {
       // Add timestamp to prevent caching
-      config.params = {
-        ...config.params,
-        _t: Date.now(),
-      };
+      if (config.method?.toUpperCase() === 'GET') {
+        config.params = {
+          ...config.params,
+          _t: Date.now(),
+        };
+      }
 
       // Add auth token if available
       const token = localStorage.getItem('token');
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
-      } else {
-        // Try to get token from cookie as fallback
-        const tokenFromCookie = document.cookie.split('; ').find(row => row.startsWith('token='));
-        if (tokenFromCookie) {
-          const token = tokenFromCookie.split('=')[1];
-          config.headers.Authorization = `Bearer ${token}`;
-        }
       }
 
       // Add language preference if needed

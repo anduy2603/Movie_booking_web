@@ -156,6 +156,14 @@ def update_profile(
     
     # Cập nhật thông tin
     update_data = user_update.dict(exclude_unset=True)
+    forbidden_fields = {"password", "confirm_password", "is_active", "role"}
+    disallowed = forbidden_fields.intersection(update_data.keys())
+    if disallowed:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="These fields cannot be updated via this endpoint: " + ", ".join(disallowed)
+        )
+
     for field, value in update_data.items():
         setattr(current_user, field, value)
     

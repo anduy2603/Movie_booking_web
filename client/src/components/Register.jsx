@@ -29,45 +29,47 @@ const Register = ({ isOpen = false, onClose, onSwitchToLogin }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return;
+
     setError('');
     setLoading(true);
     
     try {
-      console.log('Register form submitted:', formData);
-      
-      // Validation
       if (!formData.email || !formData.password || !formData.full_name) {
         setError('Vui lòng điền đầy đủ thông tin bắt buộc');
-        setLoading(false);
         return;
       }
 
       if (formData.password !== formData.confirmPassword) {
         setError('Mật khẩu xác nhận không khớp');
-        setLoading(false);
         return;
       }
 
       if (formData.password.length < 8) {
         setError('Mật khẩu phải có ít nhất 8 ký tự');
-        setLoading(false);
         return;
       }
 
-      // Remove confirmPassword from the data sent to server
-      const registrationData = {
+      const registerData = {
         email: formData.email,
-        password: formData.password,
+        username: formData.username || formData.email,
         full_name: formData.full_name,
-        username: formData.username || formData.email
+        password: formData.password,
+        confirm_password: formData.confirmPassword
       };
-
-      const result = await register(registrationData);
+      
+      const result = await register(registerData);
       
       if (result.success) {
-        onClose(); // Close the registration modal
+        onClose && onClose();
       } else {
-        setError(result.error || 'Đăng ký thất bại, vui lòng thử lại');
+        let errorMessage = result.error || 'Đăng ký thất bại, vui lòng thử lại';
+        if (Array.isArray(result.error)) {
+          errorMessage = result.error.map(err => err.msg || err.message || err).join(', ');
+        } else if (typeof result.error === 'object') {
+          errorMessage = result.error?.message || result.error?.detail || errorMessage;
+        }
+        setError(errorMessage);
       }
     } catch (error) {
       console.error('Registration error:', error);
@@ -75,46 +77,6 @@ const Register = ({ isOpen = false, onClose, onSwitchToLogin }) => {
     } finally {
       setLoading(false);
     }
-
-    setLoading(true);
-    console.log('Starting registration...');
-
-    // Include confirm_password as required by server
-    const registerData = {
-      email: formData.email,
-      username: formData.username,
-      full_name: formData.full_name,
-      password: formData.password,
-      confirm_password: formData.confirmPassword
-    };
-    console.log('Register data:', registerData);
-    
-    try {
-      const result = await register(registerData);
-      console.log('Register result:', result);
-      
-      if (result.success) {
-        console.log('Registration successful, closing modal');
-        onClose();
-      } else {
-        console.log('Registration failed:', result.error);
-        // Handle array of errors from server
-        let errorMessage = 'Đăng ký thất bại';
-        if (Array.isArray(result.error)) {
-          errorMessage = result.error.map(err => err.msg || err.message || err).join(', ');
-        } else if (typeof result.error === 'string') {
-          errorMessage = result.error;
-        } else if (result.error && typeof result.error === 'object') {
-          errorMessage = result.error.message || result.error.detail || 'Đăng ký thất bại';
-        }
-        setError(errorMessage);
-      }
-    } catch (error) {
-      console.error('Registration error:', error);
-      setError('Đã xảy ra lỗi không xác định');
-    }
-    
-    setLoading(false);
   };
 
   return (

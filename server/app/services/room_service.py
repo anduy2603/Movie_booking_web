@@ -78,7 +78,14 @@ class RoomService(BaseService[Room, RoomCreate, RoomBase]):
         return {"message": "Room deleted successfully"}
 
     # -------------------- GENERATE SEATS --------------------
-    def generate_seats(self, db: Session, room_id: int, overwrite: bool = False):
+    def generate_seats(
+        self,
+        db: Session,
+        room_id: int,
+        overwrite: bool = False,
+        seats_per_row: int | None = None,
+        layout: Optional[List[dict]] = None,
+    ):
         room = self.repository.get_by_id(db, room_id)
         if not room:
             raise HTTPException(status_code=404, detail="Room not found")
@@ -96,13 +103,23 @@ class RoomService(BaseService[Room, RoomCreate, RoomBase]):
         if total <= 0:
             raise HTTPException(status_code=400, detail="Room total_seats must be > 0")
 
-        per_row = 10
-        rows_count = int(math.ceil(total / per_row))
+        if layout:
+            created = self._generate_from_layout(db, room_id, layout, total)
+        else:
+            per_row = seats_per_row or 10
+            created = self._generate_grid(db, room_id, total, per_row)
+
+        db.commit()
+        return {"created": created}
+
+    def _generate_grid(self, db: Session, room_id: int, total: int, seats_per_row: int) -> int:
+        rows_count = int(math.ceil(total / seats_per_row))
         created = 0
         current = 0
+
         for i in range(rows_count):
-            row_label = chr(ord('A') + i)
-            for num in range(1, per_row + 1):
+            row_label = self._row_label(i)
+            for num in range(1, seats_per_row + 1):
                 if current >= total:
                     break
                 seat = Seat(
@@ -116,5 +133,38 @@ class RoomService(BaseService[Room, RoomCreate, RoomBase]):
                 db.add(seat)
                 created += 1
                 current += 1
-        db.commit()
-        return {"created": created}
+        return created
+
+    def _generate_from_layout(self, db: Session, room_id: int, layout: List[dict], total: int) -> int:
+        created = 0
+        for row in layout:
+            row_label = row.get("row") or self._row_label(row.get("index", created))
+            seats = row.get("seats", [])
+            for seat_cfg in seats:
+                if created >= total:
+                    break
+                seat = Seat(
+                    room_id=room_id,
+                    row=row_label,
+                    number=seat_cfg.get("number"),
+                    seat_type=seat_cfg.get("type", "standard"),
+                    price_modifier=seat_cfg.get("price_modifier", 1.0),
+                    is_active=seat_cfg.get("is_active", True),
+                )
+                db.add(seat)
+                created += 1
+            if created >= total:
+                break
+        return created
+
+    def _row_label(self, index: int) -> str:
+        letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        base = len(letters)
+        label = ""
+        i = index
+        while True:
+            label = letters[i % base] + label
+            i = i // base - 1
+            if i < 0:
+                break
+        return label

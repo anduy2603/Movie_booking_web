@@ -17,18 +17,21 @@ class BaseService(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         self.service_name = service_name or self.__class__.__name__
 
     def handle_exception(self, exc: Exception):
+        if isinstance(exc, HTTPException):
+            raise exc
+
         if isinstance(exc, SQLAlchemyError):
             logger.error(f"[{self.service_name}] Database error: {exc}", exc_info=True)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Database error occurred"
             )
-        else:
-            logger.error(f"[{self.service_name}] Unexpected error: {exc}", exc_info=True)
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Internal server error"
-            )
+
+        logger.error(f"[{self.service_name}] Unexpected error: {exc}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error"
+        )
 
     def get(self, db: Session, id: int) -> Optional[ModelType]:
         try:
