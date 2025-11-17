@@ -1,5 +1,6 @@
 # app/services/booking_service.py
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
 from typing import List, Tuple, Optional
 from app.services.base_service import BaseService
@@ -16,13 +17,25 @@ class BookingService(BaseService[Booking, BookingCreate, BookingUpdate]):
     # -------------------- CUSTOM METHODS --------------------
 
     def create_booking(self, db: Session, booking_in: BookingCreate) -> BookingRead:
-        """Tạo booking mới nhưng kiểm tra chỗ ngồi trùng"""
+        """Tạo booking mới với kiểm tra chỗ ngồi trùng và xử lý race condition"""
         logger.info(f"Creating booking for seat={booking_in.seat_id}, showtime={booking_in.showtime_id}")
+        
+        # Kiểm tra trước để trả lỗi sớm
         existing = self.repository.get_by_seat(db, booking_in.showtime_id, booking_in.seat_id)
         if existing:
             logger.warning(f"Seat {booking_in.seat_id} for showtime {booking_in.showtime_id} already booked")
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="This seat has already been booked.")
-        return self.repository.create(db, booking_in)
+        
+        try:
+            return self.repository.create(db, booking_in)
+        except IntegrityError as e:
+            db.rollback()
+            # Unique constraint violation - seat đã được đặt bởi request khác
+            logger.warning(f"IntegrityError creating booking: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="This seat has already been booked. Please select another seat."
+            )
 
     def get_booking_by_id(self, db: Session, booking_id: int) -> BookingRead:
         booking = self.repository.get_by_id(db, booking_id)

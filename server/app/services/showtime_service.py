@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from typing import List, Tuple, Optional
-from datetime import timezone
+from datetime import datetime, timezone
 from fastapi import HTTPException, status
 from app.services.base_service import BaseService
 from app.models.showtime import Showtime
@@ -14,26 +14,47 @@ class ShowtimeService(BaseService[Showtime, ShowtimeCreate, ShowtimeBase]):
         super().__init__(showtime_repo or ShowtimeRepository(), service_name="ShowtimeService")
 
     # -------------------- CUSTOM GET METHODS --------------------
-    def get_by_movie(self, db: Session, movie_id: int) -> List[Showtime]:
-        return self.repository.get_by_movie(db, movie_id)
+    def get_by_movie(self, db: Session, movie_id: int, include_past: bool = False) -> List[Showtime]:
+        return self.repository.get_by_movie(db, movie_id, include_past)
 
-    def get_by_room(self, db: Session, room_id: int) -> List[Showtime]:
-        return self.repository.get_by_room(db, room_id)
+    def get_by_room(self, db: Session, room_id: int, include_past: bool = False) -> List[Showtime]:
+        return self.repository.get_by_room(db, room_id, include_past)
 
-    def get_paginated(self, db: Session, page: int = 1, size: int = 10) -> Tuple[List[Showtime], int]:
-        total = self.repository.count_all(db)
-        showtimes = self.repository.get_paginated(db, offset=(page - 1) * size, limit=size)
+    def get_paginated(self, db: Session, page: int = 1, size: int = 10, include_past: bool = False) -> Tuple[List[Showtime], int]:
+        total = self.repository.count_all(db, include_past)
+        showtimes = self.repository.get_paginated(db, offset=(page - 1) * size, limit=size, include_past=include_past)
         return showtimes, total
 
-    def get_paginated_by_movie(self, db: Session, movie_id: int, page: int = 1, size: int = 10) -> Tuple[List[Showtime], int]:
-        total = self.repository.count_by_movie(db, movie_id)
-        showtimes = self.repository.get_paginated_by_movie(db, movie_id, offset=(page - 1) * size, limit=size)
+    def get_paginated_by_movie(self, db: Session, movie_id: int, page: int = 1, size: int = 10, include_past: bool = False) -> Tuple[List[Showtime], int]:
+        total = self.repository.count_by_movie(db, movie_id, include_past)
+        showtimes = self.repository.get_paginated_by_movie(db, movie_id, offset=(page - 1) * size, limit=size, include_past=include_past)
         return showtimes, total
 
-    def get_paginated_by_room(self, db: Session, room_id: int, page: int = 1, size: int = 10) -> Tuple[List[Showtime], int]:
-        total = self.repository.count_by_room(db, room_id)
-        showtimes = self.repository.get_paginated_by_room(db, room_id, offset=(page - 1) * size, limit=size)
+    def get_paginated_by_room(self, db: Session, room_id: int, page: int = 1, size: int = 10, include_past: bool = False) -> Tuple[List[Showtime], int]:
+        total = self.repository.count_by_room(db, room_id, include_past)
+        showtimes = self.repository.get_paginated_by_room(db, room_id, offset=(page - 1) * size, limit=size, include_past=include_past)
         return showtimes, total
+
+    # -------------------- AUTO UPDATE STATUS --------------------
+    def update_expired_showtimes(self, db: Session) -> int:
+        """Tự động update status showtime đã kết thúc thành 'completed'"""
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        expired = (
+            db.query(Showtime)
+            .filter(
+                Showtime.end_time < now,
+                Showtime.status.in_(['active', 'scheduled'])
+            )
+            .all()
+        )
+        count = 0
+        for showtime in expired:
+            showtime.status = 'completed'
+            count += 1
+        if count > 0:
+            db.commit()
+            logger.info(f"Updated {count} expired showtimes to 'completed' status")
+        return count
 
     # -------------------- VALIDATION --------------------
     def validate_conflict(self, db: Session, room_id: int, start_time, end_time):

@@ -1,13 +1,14 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from app.config.database import get_db
 from app.schemas.showtime_schema import ShowtimeCreate, ShowtimeRead, ShowtimeBase
 from app.services.showtime_service import ShowtimeService
 from app.repositories.showtime_repo import ShowtimeRepository
 from app.schemas.base_schema import PaginatedResponse, PaginationParams, create_paginated_response
 from app.dependencies import get_pagination_params
-from app.auth.permissions import requires_role
+from app.auth.permissions import requires_role, get_optional_user
+from app.models.user import User
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/showtimes", tags=["Showtimes"])
@@ -25,8 +26,14 @@ def create_showtime(showtime_in: ShowtimeCreate, db: Session = Depends(get_db)):
 def get_all_showtimes(
     db: Session = Depends(get_db),
     pagination: PaginationParams = Depends(get_pagination_params),
+    include_past: bool = Query(False, description="Include past showtimes (admin only)"),
+    current_user: Optional[User] = Depends(get_optional_user),
 ):
-    showtimes, total = showtime_service.get_paginated(db, pagination.page, pagination.size)
+    # Chỉ admin mới có thể xem showtime đã kết thúc
+    if include_past and (not current_user or current_user.role != "admin"):
+        include_past = False
+    
+    showtimes, total = showtime_service.get_paginated(db, pagination.page, pagination.size, include_past)
     return create_paginated_response(showtimes, total, pagination)
 
 
@@ -45,8 +52,14 @@ def get_showtimes_by_movie(
     movie_id: int,
     db: Session = Depends(get_db),
     pagination: PaginationParams = Depends(get_pagination_params),
+    include_past: bool = Query(False, description="Include past showtimes (admin only)"),
+    current_user: Optional[User] = Depends(get_optional_user),
 ):
-    showtimes, total = showtime_service.get_paginated_by_movie(db, movie_id, pagination.page, pagination.size)
+    # Chỉ admin mới có thể xem showtime đã kết thúc
+    if include_past and (not current_user or current_user.role != "admin"):
+        include_past = False
+    
+    showtimes, total = showtime_service.get_paginated_by_movie(db, movie_id, pagination.page, pagination.size, include_past)
     return create_paginated_response(showtimes, total, pagination)
 
 
@@ -73,3 +86,10 @@ class IdsPayload(BaseModel):
 def batch_delete_showtimes(payload: IdsPayload, db: Session = Depends(get_db)):
     deleted = showtime_service.delete_many(db, payload.ids or [])
     return {"deleted": deleted}
+
+# -------------------- UPDATE EXPIRED SHOWTIMES --------------------
+@router.post("/update-expired", dependencies=[Depends(requires_role("admin"))])
+def update_expired_showtimes(db: Session = Depends(get_db)):
+    """Tự động update status showtime đã kết thúc thành 'completed'"""
+    count = showtime_service.update_expired_showtimes(db)
+    return {"updated": count, "message": f"Updated {count} expired showtimes to 'completed' status"}

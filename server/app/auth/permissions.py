@@ -1,6 +1,8 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Security
+from fastapi.security import HTTPBearer
 from app.auth.jwt_auth import get_current_user_from_token
 from app.models.user import User
+from typing import Optional
 
 def requires_role(*roles: str):
     """
@@ -47,3 +49,16 @@ def get_current_user(current_user: User = Depends(get_current_user_from_token)):
     Dependency để lấy current user (đã authenticated)
     """
     return current_user
+
+def get_optional_user(
+    credentials: Optional[HTTPBearer] = Security(HTTPBearer(auto_error=False))
+) -> Optional[User]:
+    """
+    Dependency để lấy current user nếu có token, không thì trả None
+    """
+    if credentials is None:
+        return None
+    try:
+        return get_current_user_from_token(credentials)
+    except:
+        return None
