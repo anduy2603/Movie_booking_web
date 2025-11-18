@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPBearer
 from sqlalchemy.orm import Session
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, timezone
 
 from app.config.database import get_db
 from app.models.user import User
@@ -89,7 +89,7 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
         )
     
     # Cập nhật last_login
-    user.last_login = datetime.utcnow()
+    user.last_login = datetime.now(timezone.utc)
     db.commit()
     
     # Tạo access token

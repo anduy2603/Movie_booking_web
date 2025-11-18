@@ -14,7 +14,7 @@ class Showtime(TimestampMixin, Base):
     start_time: Mapped[datetime] = mapped_column(DateTime, index=True)
     end_time: Mapped[datetime] = mapped_column(DateTime)
     base_price: Mapped[float] = mapped_column(Float)
-    status: Mapped[str] = mapped_column(String(20), default="active")  # active | cancelled | finished
+    status: Mapped[str] = mapped_column(String(20), default="active")  # active | cancelled | completed | scheduled
 
     movie: Mapped["Movie"] = relationship(back_populates="showtimes")
     room: Mapped["Room"] = relationship(back_populates="showtimes")

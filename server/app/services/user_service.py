@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import HTTPException, status
 
 from app.models.user import User
@@ -57,7 +57,7 @@ class UserService(BaseService[User, UserCreate, UserUpdate]):
                 continue
             setattr(user, key, value)
 
-        user.updated_at = datetime.utcnow()
+        user.updated_at = datetime.now(timezone.utc)
         db.commit()
         db.refresh(user)
         return user

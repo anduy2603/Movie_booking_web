@@ -4,7 +4,7 @@ from fastapi import HTTPException
 from app.services.base_service import BaseService
 from app.repositories.room_repo import RoomRepository
 from app.models.room import Room
-from app.schemas.room_schema import RoomCreate, RoomRead, RoomBase
+from app.schemas.room_schema import RoomCreate, RoomRead, RoomUpdate, RoomBase
 from app.config.logger import logger
 from app.models.seat import Seat
 import math
@@ -55,7 +55,7 @@ class RoomService(BaseService[Room, RoomCreate, RoomBase]):
         logger.info(f"Fetched {len(rooms)} rooms out of total {total} for theater {theater_id}")
         return rooms, total
 
-    def update_room(self, db: Session, room_id: int, room_in: RoomBase) -> RoomRead:
+    def update_room(self, db: Session, room_id: int, room_in: RoomUpdate) -> RoomRead:
         logger.info(f"Updating room id={room_id}")
         db_room = self.repository.get_by_id(db, room_id)
         if not db_room:

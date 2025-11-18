@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.config.logger import logger
-from app.schemas.room_schema import RoomCreate, RoomRead
+from app.schemas.room_schema import RoomCreate, RoomRead, RoomUpdate
 from app.schemas.base_schema import PaginatedResponse, PaginationParams, create_paginated_response
 from app.dependencies import get_pagination_params
 from app.config.database import get_db
@@ -50,7 +50,7 @@ def create_room(room_in: RoomCreate, db: Session = Depends(get_db)):
 
 # -------------------- UPDATE ROOM --------------------
 @router.put("/{room_id}", response_model=RoomRead, dependencies=[Depends(requires_role("admin"))])
-def update_room(room_id: int, room_in: RoomCreate, db: Session = Depends(get_db)):
+def update_room(room_id: int, room_in: RoomUpdate, db: Session = Depends(get_db)):
     logger.info(f"PUT /rooms/{room_id} called with data: {room_in}")
     return room_service.update_room(db, room_id, room_in)
 
