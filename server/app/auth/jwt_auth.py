@@ -70,13 +70,16 @@ def get_current_user_from_token(
     token = credentials.credentials
     payload = verify_token(token)
     
-    user_id: int = payload.get("sub")
-    if user_id is None:
+    user_id_raw = payload.get("sub")
+    if user_id_raw is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    
+    # Convert to int (sub có thể là string hoặc int)
+    user_id: int = int(user_id_raw) if isinstance(user_id_raw, str) else user_id_raw
     
     user = db.query(User).filter(User.id == user_id).first()
     if user is None:

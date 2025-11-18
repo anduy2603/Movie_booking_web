@@ -1,0 +1,12 @@
+# ... existing ignores ...
+
+# Test coverage
+htmlcov/
+.coverage
+.coverage.*
+coverage/
+*.cover
+.hypothesis/
+.pytest_cache/
+.tox/
+

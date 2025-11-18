@@ -32,12 +32,45 @@ class UserService(BaseService[User, UserCreate, UserUpdate]):
     def get_by_id(self, db: Session, user_id: int) -> Optional[User]:
         return self.repository.get_by_id(db, user_id)
 
+    def create(self, db: Session, user_in: UserCreate) -> User:
+        """Tạo user mới với password hashing"""
+        logger.info(f"[UserService] Create user with email={user_in.email}")
+        
+        # Kiểm tra email đã tồn tại chưa
+        existing = self.repository.get_by_email(db, user_in.email)
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered"
+            )
+        
+        # Kiểm tra username nếu có
+        if user_in.username:
+            existing_username = db.query(User).filter(User.username == user_in.username).first()
+            if existing_username:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Username already taken"
+                )
+        
+        # Hash password và tạo user
+        hashed_password = get_password_hash(user_in.password)
+        user_data = user_in.model_dump(exclude={"password", "confirm_password"})
+        user_data["hashed_password"] = hashed_password
+        user_data["role"] = user_data.get("role", "customer")
+        
+        user = User(**user_data)
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        return user
+
     def update(self, db: Session, user_id: int, user_in: UserUpdate) -> Optional[User]:
         user = db.get(User, user_id)
         if not user:
             return None
 
-        update_data = user_in.dict(exclude_unset=True)
+        update_data = user_in.model_dump(exclude_unset=True)
 
         # Handle password update securely
         new_password = update_data.pop("password", None)

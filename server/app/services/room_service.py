@@ -83,7 +83,7 @@ class RoomService(BaseService[Room, RoomCreate, RoomBase]):
         db: Session,
         room_id: int,
         overwrite: bool = False,
-        seats_per_row: int | None = None,
+        seats_per_row: Optional[int] = None,
         layout: Optional[List[dict]] = None,
     ):
         room = self.repository.get_by_id(db, room_id)

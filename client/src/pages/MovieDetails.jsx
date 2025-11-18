@@ -29,7 +29,8 @@ const MovieDetails = () => {
       const [movieResponse, showtimesResponse] = await Promise.all([
         movieService.getMovieByIdRequest(id),
         // Fetch showtimes by movie (paginate generously and filter by date on client)
-        showtimeService.getShowtimesByMovieRequest(id, 1, 100)
+        // includePast=false để không lấy showtime đã kết thúc
+        showtimeService.getShowtimesByMovieRequest(id, 1, 100, false)
       ]);
 
       setMovie(movieResponse.data);

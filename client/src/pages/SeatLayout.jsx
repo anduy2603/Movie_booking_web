@@ -31,7 +31,8 @@ const SeatLayout = () => {
         setLoading(true)
         if (date) {
           // routeId is movieId per App route -> list showtimes for this movie/date
-          const stList = await showtimeService.getShowtimesByMovieRequest(routeId, 1, 100)
+          // includePast=false để không lấy showtime đã kết thúc
+          const stList = await showtimeService.getShowtimesByMovieRequest(routeId, 1, 100, false)
           setShowtimes(stList.data?.data || [])
         } else {
           // routeId is showtimeId -> jump directly to seat selection

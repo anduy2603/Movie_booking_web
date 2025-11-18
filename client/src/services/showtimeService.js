@@ -1,9 +1,9 @@
 import api from '../lib/api';
 
 // Get all showtimes with pagination
-export const getShowtimesRequest = (page = 1, size = 10) => {
+export const getShowtimesRequest = (page = 1, size = 10, includePast = false) => {
   return api.get('/showtimes', {
-    params: { page, size }
+    params: { page, size, include_past: includePast }
   });
 };
 
@@ -13,9 +13,9 @@ export const getShowtimeByIdRequest = (showtimeId) => {
 };
 
 // Get showtimes by movie ID with pagination
-export const getShowtimesByMovieRequest = (movieId, page = 1, size = 10) => {
+export const getShowtimesByMovieRequest = (movieId, page = 1, size = 10, includePast = false) => {
   return api.get(`/showtimes/movie/${movieId}`, {
-    params: { page, size }
+    params: { page, size, include_past: includePast }
   });
 };
 
